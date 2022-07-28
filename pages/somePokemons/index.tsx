@@ -1,16 +1,18 @@
 import type { GetServerSideProps, NextPage } from 'next'
 import Image from 'next/image'
 import * as styles from '../../styles/showPokemon.css'
+import * as TE from '../../fp-ts/TaskEither'
+import { pipe } from 'fp-ts/function'
+
+const POKE_API_URL = 'https://pokeapi.co/api/v2/pokemon'
 
 type PokemonImage = {
   url: string
 }
 
 type PageProps = {
-  pokemonImages: PokemonImage[]
+  pokemonImages: ReadonlyArray<PokemonImage>
 }
-
-const POKE_API_URL = 'https://pokeapi.co/api/v2/pokemon'
 
 type GeneratePokemonResponse = {
   count: number
@@ -19,26 +21,41 @@ type GeneratePokemonResponse = {
   results: ReadonlyArray<{ name: string; url: string }>
 }
 
-const generatePokemonAsync = async (
+const generatePokemonAsync = (
   limit: number,
   offset: number,
-): Promise<GeneratePokemonResponse> =>
-  fetch(`${POKE_API_URL}?limit=${limit}&offset=${offset}`).then((_) => _.json())
-
-const getPokemonImage = async (url: string): Promise<PokemonImage> =>
-  fetch(url)
-    .then((_) => _.json())
-    .then((_) => ({
-      url: _.sprites.other.dream_world.front_default,
-    }))
-
-export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const somePokemons = await generatePokemonAsync(365, 0)
-  const allPokemonsImages = await Promise.all(
-    somePokemons.results.map((_) => getPokemonImage(_.url)),
+): TE.TaskEither<Error, GeneratePokemonResponse> =>
+  TE.tryCatch(
+    () =>
+      fetch(`${POKE_API_URL}?limit=${limit}&offset=${offset}`)
+        .then((_) => _.json())
+        .then((_) => _ as GeneratePokemonResponse),
+    (_) => new Error('generatePokemonAsyncError'),
   )
-  return { props: { pokemonImages: allPokemonsImages } }
-}
+
+const getPokemonImage = (url: string): TE.TaskEither<Error, PokemonImage> =>
+  TE.tryCatch(
+    () =>
+      fetch(url)
+        .then((_) => _.json())
+        .then((_) => ({
+          url: _.sprites.other.dream_world.front_default,
+        })),
+    () => new Error('getPokemonImageError'),
+  )
+
+export const getServerSideProps: GetServerSideProps<PageProps> = async () =>
+  pipe(
+    generatePokemonAsync(50, 0),
+    TE.chain((pokemonList) =>
+      pipe(
+        pokemonList.results,
+        TE.traverseArray(({ url }) => getPokemonImage(url)),
+      ),
+    ),
+    TE.map((_) => ({ props: { pokemonImages: _ } })),
+    TE.unsafeUnwrap,
+  )
 
 const SomePokemons: NextPage<PageProps> = ({ pokemonImages }) => {
   return (
