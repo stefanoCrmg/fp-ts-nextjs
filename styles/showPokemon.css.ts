@@ -9,5 +9,5 @@ export const gridContainer = style({
   margin: '0 auto',
   maxWidth: '100rem',
   gap: '1rem',
-  gridTemplateColumns: 'repeat(12, 1fr)',
+  gridTemplateColumns: 'repeat(8, 1fr)',
 })
