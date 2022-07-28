@@ -1,3 +1,12 @@
 {
-  "extends": "next/core-web-vitals"
+  "extends": ["next/core-web-vitals", "prettier", "plugin:@typescript-eslint/recommended"],
+  "rules": {
+    "no-console": "error",
+    "node/no-missing-import": "off",
+    "node/no-unpublished-import": "off",
+    "import/no-named-as-default-member": "off",
+    "@typescript-eslint/ban-types": "off",
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/no-empty-interface": "off"
+  }
 }
