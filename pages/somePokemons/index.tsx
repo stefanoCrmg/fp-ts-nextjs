@@ -1,44 +1,94 @@
 import type { GetServerSideProps, NextPage } from 'next'
 import Image from 'next/image'
 import * as styles from '../../styles/showPokemon.css'
+import * as t from 'io-ts'
+import { formatValidationErrors } from 'io-ts-reporters'
+import * as TE from '../../fp-ts/TaskEither'
+import * as E from 'fp-ts/Either'
+import * as RTE from '../../fp-ts/ReaderTaskEither'
+import { flow, pipe } from 'fp-ts/function'
+import { ProjectEnv } from '../../util/makeEnv'
 
 type PokemonImage = {
   url: string
 }
 
 type PageProps = {
-  pokemonImages: PokemonImage[]
+  pokemonImages: ReadonlyArray<PokemonImage>
 }
 
-const POKE_API_URL = 'https://pokeapi.co/api/v2/pokemon'
+const SomePokemon = t.readonly(
+  t.type({
+    count: t.number,
+    next: t.union([t.null, t.string]),
+    previous: t.union([t.null, t.string]),
+    results: t.readonlyArray(t.type({ name: t.string })),
+  }),
+)
+type SomePokemon = t.TypeOf<typeof SomePokemon>
 
-type GeneratePokemonResponse = {
-  count: number
-  next: null | string
-  previous: null | string
-  results: ReadonlyArray<{ name: string; url: string }>
-}
-
-const generatePokemonAsync = async (
+const generatePokemonAsync = (
   limit: number,
   offset: number,
-): Promise<GeneratePokemonResponse> =>
-  fetch(`${POKE_API_URL}?limit=${limit}&offset=${offset}`).then((_) => _.json())
-
-const getPokemonImage = async (url: string): Promise<PokemonImage> =>
-  fetch(url)
-    .then((_) => _.json())
-    .then((_) => ({
-      url: _.sprites.other.dream_world.front_default,
-    }))
-
-export const getServerSideProps: GetServerSideProps<PageProps> = async () => {
-  const somePokemons = await generatePokemonAsync(365, 0)
-  const allPokemonsImages = await Promise.all(
-    somePokemons.results.map((_) => getPokemonImage(_.url)),
+): RTE.ReaderTaskEither<ProjectEnv, Error, SomePokemon> =>
+  pipe(
+    RTE.ask<ProjectEnv>(),
+    RTE.chainTaskEitherK((env) =>
+      pipe(
+        TE.tryCatch(
+          () =>
+            fetch(`${env.pokemonAPI}?limit=${limit}&offset=${offset}`)
+              .then((_) => _.json())
+              .then((_) => _),
+          (_) => new Error('generatePokemonAsyncError'),
+        ),
+        TE.chainEitherKW(
+          flow(
+            SomePokemon.decode,
+            E.mapLeft(
+              (decodingFailure) =>
+                new Error(
+                  `Decoding Failure: ${formatValidationErrors(
+                    decodingFailure,
+                  )}`,
+                ),
+            ),
+          ),
+        ),
+      ),
+    ),
   )
-  return { props: { pokemonImages: allPokemonsImages } }
-}
+
+const getPokemonImage = (
+  pokemon: string,
+): RTE.ReaderTaskEither<ProjectEnv, Error, PokemonImage> =>
+  pipe(
+    RTE.ask<ProjectEnv>(),
+    RTE.chainTaskEitherK((env) =>
+      TE.tryCatch(
+        () =>
+          fetch(`${env.pokemonAPI}/${pokemon}`)
+            .then((_) => _.json())
+            .then((_) => ({
+              url: _.sprites.other.dream_world.front_default,
+            })),
+        (e) => new Error(JSON.stringify(e)),
+      ),
+    ),
+  )
+
+export const getServerSideProps: GetServerSideProps<PageProps> = async () =>
+  pipe(
+    generatePokemonAsync(3, 0),
+    RTE.chainW((pokemonList) =>
+      pipe(
+        pokemonList.results,
+        RTE.traverseArray(({ name }) => getPokemonImage(name)),
+        RTE.map((pokemonImages) => ({ props: { pokemonImages } })),
+      ),
+    ),
+    RTE.unsafeUnwrap,
+  )(ProjectEnv)
 
 const SomePokemons: NextPage<PageProps> = ({ pokemonImages }) => {
   return (
