@@ -16,6 +16,7 @@
     "fp-ts-contrib": "^0.1.29",
     "fp-ts-std": "^0.14.2",
     "io-ts": "^2.2.17",
+    "io-ts-reporters": "^2.0.1",
     "monocle-ts": "^2.3.13",
     "newtype-ts": "^0.3.5",
     "next": "12.2.3",
