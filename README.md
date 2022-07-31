@@ -1,4 +1,6 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+## Why
+
+This is just a playground for fp, next.js and vanilla extract.
 
 ## Getting Started
 
