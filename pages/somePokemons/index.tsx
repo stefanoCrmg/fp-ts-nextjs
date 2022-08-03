@@ -31,28 +31,23 @@ const generatePokemonAsync = (
   limit: number,
   offset: number,
 ): RTE.ReaderTaskEither<ProjectEnv, Error, SomePokemon> =>
-  pipe(
-    RTE.ask<ProjectEnv>(),
-    RTE.chainTaskEitherK((env) =>
-      pipe(
-        TE.tryCatch(
-          () =>
-            fetch(`${env.pokemonAPI}?limit=${limit}&offset=${offset}`)
-              .then((_) => _.json())
-              .then((_) => _),
-          (_) => new Error('generatePokemonAsyncError'),
-        ),
-        TE.chainEitherKW(
-          flow(
-            SomePokemon.decode,
-            E.mapLeft(
-              (decodingFailure) =>
-                new Error(
-                  `Decoding Failure: ${formatValidationErrors(
-                    decodingFailure,
-                  )}`,
-                ),
-            ),
+  RTE.asksTaskEither(({ pokemonAPI }) =>
+    pipe(
+      TE.tryCatch(
+        () =>
+          fetch(`${pokemonAPI}?limit=${limit}&offset=${offset}`)
+            .then((_) => _.json())
+            .then((_) => _),
+        (_) => new Error('generatePokemonAsyncError'),
+      ),
+      TE.chainEitherKW(
+        flow(
+          SomePokemon.decode,
+          E.mapLeft(
+            (decodingFailure) =>
+              new Error(
+                `Decoding Failure: ${formatValidationErrors(decodingFailure)}`,
+              ),
           ),
         ),
       ),
@@ -62,18 +57,15 @@ const generatePokemonAsync = (
 const getPokemonImage = (
   pokemon: string,
 ): RTE.ReaderTaskEither<ProjectEnv, Error, PokemonImage> =>
-  pipe(
-    RTE.ask<ProjectEnv>(),
-    RTE.chainTaskEitherK((env) =>
-      TE.tryCatch(
-        () =>
-          fetch(`${env.pokemonAPI}/${pokemon}`)
-            .then((_) => _.json())
-            .then((_) => ({
-              url: _.sprites.other.dream_world.front_default,
-            })),
-        (e) => new Error(JSON.stringify(e)),
-      ),
+  RTE.asksTaskEither(({ pokemonAPI }) =>
+    TE.tryCatch(
+      () =>
+        fetch(`${pokemonAPI}/${pokemon}`)
+          .then((_) => _.json())
+          .then((_) => ({
+            url: _.sprites.other.dream_world.front_default,
+          })),
+      (e) => new Error(JSON.stringify(e)),
     ),
   )
 
