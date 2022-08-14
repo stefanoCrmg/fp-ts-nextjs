@@ -2,14 +2,10 @@ import type { NextPage } from 'next'
 import Image from 'next/image'
 import * as t from 'io-ts'
 import { pipe } from 'fp-ts/function'
-import * as TE from '../fp-ts/TaskEither'
+import * as TE from '@fp-ts/TaskEither'
 import * as styles from '../styles/Home.css'
-import {
-  fetchAndValidate,
-  GetJsonError,
-  serializeJsonError,
-} from '../utils/fetch-fp/Response'
-import { useRemoteData } from '../utils/useRemoteQuery'
+import { fetchAndValidate, serializeFetchError } from '@utils/fetch'
+import { useQueryRemoteData } from '@utils/useRemoteQuery'
 import * as RD from '@devexperts/remote-data-ts'
 
 const POKE_API_URL = 'https://pokeapi.co/api/v2/pokemon'
@@ -33,10 +29,10 @@ const getOnePokemon = (pokemon: string): Promise<Pokemon> =>
   pipe(fetchAndValidate(Pokemon, `${POKE_API_URL}/${pokemon}`), TE.unsafeUnwrap)
 
 const Home: NextPage = () => {
-  const findTotodile = useRemoteData<Pokemon, GetJsonError>(['totodile'], () =>
+  const findTotodile = useQueryRemoteData(['totodile'], () =>
     getOnePokemon('totodile'),
   )
-  const findPikachu = useRemoteData<Pokemon, GetJsonError>(['pikachu'], () =>
+  const findPikachu = useQueryRemoteData(['pikachu'], () =>
     getOnePokemon('pikachu'),
   )
 
@@ -44,7 +40,7 @@ const Home: NextPage = () => {
     RD.combine(findTotodile, findPikachu),
     RD.fold3(
       () => <div>Loading...</div>,
-      (failure) => <div>{JSON.stringify(serializeJsonError(failure))}</div>,
+      (failure) => <div>{JSON.stringify(serializeFetchError(failure))}</div>,
       ([totodile, pikachu]) => (
         <div className={styles.container}>
           <Image

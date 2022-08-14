@@ -2,11 +2,11 @@ import type { GetServerSideProps, NextPage } from 'next'
 import Image from 'next/image'
 import * as styles from '../../styles/showPokemon.css'
 import * as t from 'io-ts'
-import * as TE from '../../fp-ts/TaskEither'
-import * as RTE from '../../fp-ts/ReaderTaskEither'
+import * as TE from '@fp-ts/TaskEither'
+import * as RTE from '@fp-ts/ReaderTaskEither'
 import { pipe } from 'fp-ts/function'
-import { ProjectEnv } from '../../utils/makeEnv'
-import { fetchAndValidate, GetJsonError } from '../../utils/fetch-fp/Response'
+import { ProjectEnv } from '@utils/makeEnv'
+import { fetchAndValidate, FetchError } from '@utils/fetch'
 
 type PokemonImage = {
   url: string
@@ -29,7 +29,7 @@ type SomePokemon = t.TypeOf<typeof SomePokemon>
 const generatePokemonAsync = (
   limit: number,
   offset: number,
-): RTE.ReaderTaskEither<ProjectEnv, GetJsonError, SomePokemon> =>
+): RTE.ReaderTaskEither<ProjectEnv, FetchError, SomePokemon> =>
   RTE.asksTaskEither(({ pokemonAPI }) =>
     fetchAndValidate(
       SomePokemon,

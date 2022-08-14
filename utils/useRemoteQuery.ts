@@ -1,12 +1,14 @@
+/* adapted from https://tanstack.com/ in order to use remote-data-ts */
 import * as RD from '@devexperts/remote-data-ts'
 import { match } from 'ts-pattern'
 
 import { parseQueryArgs, QueryFunction, QueryKey } from '@tanstack/query-core'
 import { useQuery, UseQueryOptions } from '@tanstack/react-query'
+import { FetchError } from '@utils/fetch'
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
@@ -16,9 +18,9 @@ export function useRemoteData<
   > & { initialData?: () => undefined },
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
@@ -28,18 +30,18 @@ export function useRemoteData<
   > & { initialData: TQueryFnData | (() => TQueryFnData) },
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
   options: UseQueryOptions<TQueryFnData, TError, TData, TQueryKey>,
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
@@ -50,9 +52,9 @@ export function useRemoteData<
   > & { initialData?: () => undefined },
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
@@ -63,9 +65,9 @@ export function useRemoteData<
   > & { initialData: TQueryFnData | (() => TQueryFnData) },
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
@@ -76,9 +78,9 @@ export function useRemoteData<
   >,
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
@@ -90,9 +92,9 @@ export function useRemoteData<
   > & { initialData?: () => undefined },
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
@@ -104,9 +106,9 @@ export function useRemoteData<
   > & { initialData: TQueryFnData | (() => TQueryFnData) },
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData = unknown,
-  TError = unknown,
+  TError = FetchError,
   TData = TQueryFnData,
   TQueryKey extends QueryKey = QueryKey,
 >(
@@ -118,7 +120,7 @@ export function useRemoteData<
   >,
 ): RD.RemoteData<TError, TData>
 
-export function useRemoteData<
+export function useQueryRemoteData<
   TQueryFnData,
   TError,
   TData = TQueryFnData,
@@ -134,7 +136,7 @@ export function useRemoteData<
   const query = useQuery(parsedOptions)
   return match(query)
     .with({ status: 'success' }, (q) => RD.success(q.data))
-    .with({ status: 'error' }, (q) => RD.failure(q.error as TError))
+    .with({ status: 'error' }, (q) => RD.failure(q.error))
     .with({ status: 'loading' }, () => RD.pending)
     .exhaustive()
 }
