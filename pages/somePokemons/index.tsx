@@ -2,12 +2,14 @@ import type { GetServerSideProps, NextPage } from 'next'
 import Image from 'next/image'
 import * as styles from '../../styles/showPokemon.css'
 import * as t from 'io-ts'
-import { formatValidationErrors } from 'io-ts-reporters'
 import * as TE from '../../fp-ts/TaskEither'
-import * as E from 'fp-ts/Either'
 import * as RTE from '../../fp-ts/ReaderTaskEither'
-import { flow, pipe } from 'fp-ts/function'
-import { ProjectEnv } from '../../util/makeEnv'
+import { pipe } from 'fp-ts/function'
+import { ProjectEnv } from '../../utils/makeEnv'
+import {
+  fetchAndValidate,
+  GetJsonError,
+} from '../../utils/request-frp/Response'
 
 type PokemonImage = {
   url: string
@@ -16,7 +18,6 @@ type PokemonImage = {
 type PageProps = {
   pokemonImages: ReadonlyArray<PokemonImage>
 }
-
 const SomePokemon = t.readonly(
   t.type({
     count: t.number,
@@ -24,33 +25,18 @@ const SomePokemon = t.readonly(
     previous: t.union([t.null, t.string]),
     results: t.readonlyArray(t.type({ name: t.string })),
   }),
+  'SomePokemon',
 )
 type SomePokemon = t.TypeOf<typeof SomePokemon>
 
 const generatePokemonAsync = (
   limit: number,
   offset: number,
-): RTE.ReaderTaskEither<ProjectEnv, Error, SomePokemon> =>
+): RTE.ReaderTaskEither<ProjectEnv, GetJsonError, SomePokemon> =>
   RTE.asksTaskEither(({ pokemonAPI }) =>
-    pipe(
-      TE.tryCatch(
-        () =>
-          fetch(`${pokemonAPI}?limit=${limit}&offset=${offset}`)
-            .then((_) => _.json())
-            .then((_) => _),
-        (_) => new Error('generatePokemonAsyncError'),
-      ),
-      TE.chainEitherKW(
-        flow(
-          SomePokemon.decode,
-          E.mapLeft(
-            (decodingFailure) =>
-              new Error(
-                `Decoding Failure: ${formatValidationErrors(decodingFailure)}`,
-              ),
-          ),
-        ),
-      ),
+    fetchAndValidate(
+      SomePokemon,
+      `${pokemonAPI}?limit=${limit}&offset=${offset}`,
     ),
   )
 
@@ -79,8 +65,8 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () =>
         RTE.map((pokemonImages) => ({ props: { pokemonImages } })),
       ),
     ),
-    RTE.unsafeUnwrap,
-  )(ProjectEnv)
+    RTE.runReaderUnsafeUnwrap(ProjectEnv),
+  )
 
 const SomePokemons: NextPage<PageProps> = ({ pokemonImages }) => {
   return (

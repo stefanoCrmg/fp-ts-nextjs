@@ -17,11 +17,15 @@ export const getServerSideProps: GetServerSideProps<
   PokemonUrlQuery
 > = async (context) => {
   const params = context.params
-  return fetch(`${POKE_API_URL}/${params?.pokemon}`)
+  const svgUrl = await fetch(`${POKE_API_URL}/${params?.pokemon}`)
     .then((_) => _.json())
     .then((_) => ({
-      props: { url: _.sprites.other.dream_world.front_default },
+      url: _.sprites.other.dream_world.front_default as string,
     }))
+  const svgImage = await fetch(svgUrl.url)
+    .then((response) => response.text())
+    .then((_) => `data:image/svg+xml;utf8,${encodeURIComponent(_)}`)
+  return { props: { url: svgImage } }
 }
 
 const ShowPokemon: NextPage<PokemonImage> = ({ url }) => {
