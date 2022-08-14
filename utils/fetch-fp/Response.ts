@@ -10,6 +10,7 @@ import { constVoid, flow, pipe } from 'fp-ts/function'
 import * as O from 'fp-ts/Option'
 import * as TE from 'fp-ts/TaskEither'
 import { Member, create, _, serialize } from '@unsplash/sum-types'
+import { match } from 'ts-pattern'
 import { Json } from 'fp-ts/Json'
 import { NonEmptyString } from 'io-ts-types'
 import * as pc from 'picocolors'
@@ -20,13 +21,27 @@ const CONTENT_TYPE_JSON = 'application/json'
 export type DecodingFailure = Member<'DecodingFailure', { errors: t.Errors }>
 export type FetchError = Member<'FetchError', { message: string }>
 export type GetJsonError =
+  | Member<
+      'HttpClientError',
+      { statusCode: number; data?: Record<string, unknown> }
+    >
+  | Member<
+      'HttpServerError',
+      { statusCode: number; data?: Record<string, unknown> }
+    >
   | Member<'NotJson'>
   | Member<'JsonParseError', { message: string }>
   | FetchError
   | DecodingFailure
 
 const {
-  mk: { JsonParseError, NotJson, DecodingFailure },
+  mk: {
+    JsonParseError,
+    NotJson,
+    DecodingFailure,
+    HttpClientError,
+    HttpServerError,
+  },
   match: matchGetJsonError,
 } = create<GetJsonError>()
 
@@ -70,25 +85,37 @@ export const fromFetch: (
   ),
 )
 
-const checkIsJson: (response: Response) => boolean = flow(
+const responseIsJson: (response: Response) => boolean = flow(
   (response: Response) => response.headers.get(CONTENT_TYPE_RESPONSE_HEADER),
   O.fromNullable,
   O.map(flow(ContentTypeHelpers.parse, (result) => result.type)),
   O.exists((type) => type === CONTENT_TYPE_JSON),
 )
+const responseIs40x = (response: Response): boolean =>
+  response.status >= 400 && response.status <= 451
+const responseIs50x = (response: Response): boolean =>
+  response.status >= 500 && response.status <= 511
 
 export const getJson = (
   response: Response,
 ): TE.TaskEither<GetJsonError, Json> =>
-  checkIsJson(response)
-    ? TE.tryCatch(
-        () => response.json() as Promise<Json>,
+  match(response)
+    .when(responseIs40x, (r) =>
+      TE.left(HttpClientError({ statusCode: r.status })),
+    )
+    .when(responseIs50x, (r) =>
+      TE.left(HttpServerError({ statusCode: r.status })),
+    )
+    .when(responseIsJson, (r) =>
+      TE.tryCatch(
+        () => r.json() as Promise<Json>,
         (error) =>
           JsonParseError({
             message: error instanceof Error ? error.message : 'Unknown error.',
           }),
-      )
-    : TE.left(NotJson())
+      ),
+    )
+    .otherwise(() => TE.left(NotJson()))
 
 export const getJsonAndValidate = <A, O = A>(
   codec: t.Type<A, O, unknown>,

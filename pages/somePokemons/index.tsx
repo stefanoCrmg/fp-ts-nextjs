@@ -6,10 +6,7 @@ import * as TE from '../../fp-ts/TaskEither'
 import * as RTE from '../../fp-ts/ReaderTaskEither'
 import { pipe } from 'fp-ts/function'
 import { ProjectEnv } from '../../utils/makeEnv'
-import {
-  fetchAndValidate,
-  GetJsonError,
-} from '../../utils/request-frp/Response'
+import { fetchAndValidate, GetJsonError } from '../../utils/fetch-fp/Response'
 
 type PokemonImage = {
   url: string
