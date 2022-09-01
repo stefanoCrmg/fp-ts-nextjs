@@ -2,11 +2,12 @@ import type { NextPage } from 'next'
 import Image from 'next/image'
 import * as t from 'io-ts'
 import { pipe } from 'fp-ts/function'
-import * as TE from '@fp-ts/TaskEither'
+import * as TE from '@fp/TaskEither'
 import * as styles from '../styles/Home.css'
 import { fetchAndValidate, serializeFetchError } from '@utils/fetch'
 import { useQueryRemoteData } from '@utils/useRemoteQuery'
 import * as RD from '@devexperts/remote-data-ts'
+import Link from 'next/link'
 
 const POKE_API_URL = 'https://pokeapi.co/api/v2/pokemon'
 
@@ -32,26 +33,19 @@ const Home: NextPage = () => {
   const findTotodile = useQueryRemoteData(['totodile'], () =>
     getOnePokemon('totodile'),
   )
-  const findPikachu = useQueryRemoteData(['pikachu'], () =>
-    getOnePokemon('pikachu'),
-  )
 
   return pipe(
-    RD.combine(findTotodile, findPikachu),
+    findTotodile,
     RD.fold3(
       () => <div>Loading...</div>,
       (failure) => <div>{JSON.stringify(serializeFetchError(failure))}</div>,
-      ([totodile, pikachu]) => (
-        <div className={styles.container}>
+      (totodile) => (
+        <Link href="/showPokemon/totodile" className={styles.container}>
           <Image
             src={totodile.sprites.other.dream_world.front_default}
             layout="fill"
           />
-          <Image
-            src={pikachu.sprites.other.dream_world.front_default}
-            layout="fill"
-          />
-        </div>
+        </Link>
       ),
     ),
   )

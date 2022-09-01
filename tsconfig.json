@@ -31,8 +31,9 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "baseUrl": ".",
     "paths": {
-      "@fp-ts/*": ["./fp-ts/*"],
+      "@fp/*": ["./fp/*"],
       "@utils/*": ["./utils/*"],      
     }
   },

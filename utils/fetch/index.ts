@@ -3,12 +3,12 @@ import { formatValidationErrors } from 'io-ts-reporters'
 import * as ContentTypeHelpers from 'content-type'
 import * as E from 'fp-ts/Either'
 import * as IOE from 'fp-ts/IOEither'
-import * as IO from '@fp-ts/IO'
+import * as IO from '@fp/IO'
 import * as C from 'fp-ts/Console'
 import * as t from 'io-ts'
 import { constVoid, flow, pipe } from 'fp-ts/function'
-import * as O from 'fp-ts/Option'
-import * as TE from 'fp-ts/TaskEither'
+import * as O from '@fp/Option'
+import * as TE from '@fp/TaskEither'
 import {
   Member,
   create,
@@ -59,32 +59,31 @@ const {
 export const serializeFetchError: (f: FetchError) => Serialized<FetchError> =
   serialize<FetchError>
 export const deserializeFetchError: () => (
-  x: Serialized<FetchError>,
+  se: Serialized<FetchError>,
 ) => FetchError = deserialize<FetchError>
 
-export const observeDecodingFailure: (
-  additionalInfo?: string,
-) => <A>(either: E.Either<FetchError, A>) => IOE.IOEither<FetchError, A> = (
-  additionalInfo,
-) =>
-  flow(
-    IOE.fromEither,
-    IOE.orElseFirstIOK(
-      flow(
-        IO.of,
-        IO.chainFirst(() =>
-          IO.when(NonEmptyString.is(additionalInfo))(C.log(additionalInfo)),
-        ),
-        IO.chain(
-          matchFetchError({
-            DecodingFailure: ({ errors }) =>
-              pipe(errors, formatValidationErrors, C.error),
-            [_]: () => constVoid,
-          }),
+export const observeDecodingFailure =
+  (additionalInfo?: string) =>
+  <A>(someFailure: E.Either<FetchError, A>): IOE.IOEither<FetchError, A> =>
+    pipe(
+      someFailure,
+      IOE.fromEither,
+      IOE.orElseFirstIOK(
+        flow(
+          IO.of,
+          IO.chainFirst(() =>
+            IO.when(NonEmptyString.is(additionalInfo))(C.log(additionalInfo)),
+          ),
+          IO.chain(
+            matchFetchError({
+              DecodingFailure: ({ errors }) =>
+                pipe(errors, formatValidationErrors, C.error),
+              [_]: () => constVoid,
+            }),
+          ),
         ),
       ),
-    ),
-  )
+    )
 
 export const fromFetch: (
   input: RequestInfo | URL,
@@ -127,20 +126,19 @@ export const getJson = (response: Response): TE.TaskEither<FetchError, Json> =>
     )
     .otherwise(() => TE.left(NotJson()))
 
-export const getJsonAndValidate = <A, O = A>(
-  codec: t.Type<A, O, unknown>,
-  additionalInfo?: string,
-): ((r: Response) => TE.TaskEither<FetchError, A>) =>
-  flow(
-    getJson,
-    TE.chainIOEitherK(
-      flow(
-        codec.decode,
-        E.mapLeft((errors) => DecodingFailure({ errors })),
-        observeDecodingFailure(additionalInfo),
+export const getJsonAndValidate =
+  <A, O = A>(codec: t.Type<A, O, unknown>, additionalInfo?: string) =>
+  (response: Response): TE.TaskEither<FetchError, A> =>
+    pipe(
+      getJson(response),
+      TE.chainIOEitherK(
+        flow(
+          codec.decode,
+          E.mapLeft((errors) => DecodingFailure({ errors })),
+          observeDecodingFailure(additionalInfo),
+        ),
       ),
-    ),
-  )
+    )
 
 export const fetchAndValidate = <A, O = A>(
   codec: t.Type<A, O, unknown>,
