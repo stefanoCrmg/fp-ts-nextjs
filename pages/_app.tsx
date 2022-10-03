@@ -1,14 +1,36 @@
-import type { AppProps } from 'next/app'
+import { AppProps } from 'next/app'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { MantineProvider } from '@mantine/core'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { refetchOnWindowFocus: false, retry: false, staleTime: Infinity },
+  },
+})
 
-function MyApp({ Component, pageProps }: AppProps) {
+export default function App(props: AppProps) {
+  const { Component, pageProps } = props
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <Component {...pageProps} />
-    </QueryClientProvider>
+    <>
+      {/* <Head>
+        <title>Page title</title>
+        <meta name="viewport" content="minimum-scale=1, initial-scale=1, width=device-width" />
+      </Head> */}
+
+      <MantineProvider
+        withGlobalStyles
+        withNormalizeCSS
+        theme={{
+          colorScheme: 'light',
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          <Component {...pageProps} />
+          <ReactQueryDevtools initialIsOpen />
+        </QueryClientProvider>
+      </MantineProvider>
+    </>
   )
 }
-
-export default MyApp

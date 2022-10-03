@@ -41,11 +41,11 @@ export type FetchError =
   | GenericFetchError
   | DecodingFailure
 
-const {
+export const {
   mk: { GenericFetchError },
 } = create<GenericFetchError>()
 
-const {
+export const {
   mk: {
     JsonParseError,
     NotJson,

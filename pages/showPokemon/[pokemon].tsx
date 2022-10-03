@@ -1,10 +1,10 @@
 import type { GetServerSideProps, NextPage } from 'next'
 import Image from 'next/image'
-import * as styles from '../../styles/showPokemon.css'
 import * as RA from 'fp-ts/ReadonlyArray'
 import * as O from '@fp/Option'
 import { pipe } from 'fp-ts/function'
 import Link from 'next/link'
+import { Grid } from '@mantine/core'
 
 type PokemonImage = {
   url: string
@@ -56,11 +56,11 @@ export const getServerSideProps: GetServerSideProps<
 const ShowPokemon: NextPage<PokemonImage> = ({ url, color }) => {
   return (
     <Link href="/">
-      <div className={styles.gridContainer}>
+      <Grid>
         <div style={{ backgroundColor: color }}>
           <Image src={url} layout="responsive" width="30rem" height="30rem" />
         </div>
-      </div>
+      </Grid>
     </Link>
   )
 }

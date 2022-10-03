@@ -1,12 +1,12 @@
 import type { GetServerSideProps, NextPage } from 'next'
 import Image from 'next/image'
-import * as styles from '../../styles/showPokemon.css'
 import * as t from 'io-ts'
 import * as TE from '@fp/TaskEither'
 import * as RTE from '@fp/ReaderTaskEither'
 import { pipe } from 'fp-ts/function'
 import { ProjectEnv } from '@utils/makeEnv'
 import { fetchAndValidate, FetchError } from '@utils/fetch'
+import { Grid } from '@mantine/core'
 
 type PokemonImage = {
   url: string
@@ -67,18 +67,20 @@ export const getServerSideProps: GetServerSideProps<PageProps> = async () =>
 
 const SomePokemons: NextPage<PageProps> = ({ pokemonImages }) => {
   return (
-    <div className={styles.gridContainer}>
+    <Grid style={{ margin: 0 }}>
       {pokemonImages.map((pokemon, index) => (
-        <Image
-          key={`${index}-pokemon`}
-          src={pokemon.url}
-          layout="responsive"
-          width="30rem"
-          height="30rem"
-          alt="pokemon"
-        />
+        <Grid.Col span={4}>
+          <Image
+            key={`${index}-pokemon`}
+            src={pokemon.url}
+            layout="responsive"
+            width="15rem"
+            height="15rem"
+            alt="pokemon"
+          />
+        </Grid.Col>
       ))}
-    </div>
+    </Grid>
   )
 }
 
