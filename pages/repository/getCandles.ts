@@ -3,7 +3,8 @@ import { flow, pipe } from 'fp-ts/function'
 import * as RTE from '@fp/ReaderTaskEither'
 import * as TE from '@fp/TaskEither'
 import * as IO from '@fp/IO'
-import { fetchAndValidate, FetchError } from '@utils/fetch'
+import * as O from '@fp/Option'
+import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
 import * as stdD from 'fp-ts-std/Date'
 import { NonEmptyString } from 'io-ts-types'
 import { FrontendEnv } from '@utils/frontendEnv'
@@ -29,7 +30,7 @@ export const CandlesResponse = t.readonly(
 )
 export interface CandlesResponse extends t.TypeOf<typeof CandlesResponse> {}
 
-export const getCandlesTask = (
+const _getCandlesTask = (
   symbol: string,
 ): RTE.ReaderTaskEither<FrontendEnv, FetchError, CandlesResponse> =>
   RTE.asksTaskEither(({ backendURL }) =>
@@ -61,8 +62,11 @@ export const getCandlesTask = (
   )
 
 export const getCandles: (
-  symbol: string,
-) => TE.TaskEither<FetchError, CandlesResponse> = flow(
-  getCandlesTask,
-  RTE.runReader(FrontendEnv),
+  stockValue: O.Option<string>,
+) => Promise<CandlesResponse> = flow(
+  RTE.fromOption(() =>
+    GenericFetchError({ message: 'Missing stock identifier' }),
+  ),
+  RTE.chain(_getCandlesTask),
+  RTE.runReaderUnsafeUnwrap(FrontendEnv),
 )

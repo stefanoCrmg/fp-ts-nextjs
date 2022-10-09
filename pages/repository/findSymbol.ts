@@ -1,8 +1,8 @@
 import * as t from 'io-ts'
 import { flow } from 'fp-ts/function'
 import * as RTE from '@fp/ReaderTaskEither'
-import * as TE from '@fp/TaskEither'
-import { fetchAndValidate, FetchError } from '@utils/fetch'
+import * as O from '@fp/Option'
+import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
 import {
   DateFromISOString,
   NonEmptyString,
@@ -46,7 +46,7 @@ const TickerResponse = t.readonly(
 )
 export interface TickerResponse extends t.TypeOf<typeof TickerResponse> {}
 
-export const findSymbolTask = (
+const _findSymbolTask = (
   symbol: NonEmptyString,
 ): RTE.ReaderTaskEither<FrontendEnv, FetchError, TickerResponse> =>
   RTE.asksTaskEither(({ backendURL }) =>
@@ -57,8 +57,11 @@ export const findSymbolTask = (
   )
 
 export const findSymbol: (
-  symbol: NonEmptyString,
-) => TE.TaskEither<FetchError, TickerResponse> = flow(
-  findSymbolTask,
-  RTE.runReader(FrontendEnv),
+  stockValue: O.Option<NonEmptyString>,
+) => Promise<TickerResponse> = flow(
+  RTE.fromOption(() =>
+    GenericFetchError({ message: 'Missing stock identifier' }),
+  ),
+  RTE.chain(_findSymbolTask),
+  RTE.runReaderUnsafeUnwrap(FrontendEnv),
 )
