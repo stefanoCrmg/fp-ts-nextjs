@@ -1,9 +1,12 @@
 import type { NextPage } from 'next'
 import { flow, pipe } from 'fp-ts/function'
 import { useDebouncedValue } from '@mantine/hooks'
-import { findSymbol } from './repository/findSymbol'
+import { findTicker } from './repository/findSymbol'
 import { getCandles } from './repository/getCandles'
-import { useQueryRemoteData } from '@utils/useRemoteQuery'
+import {
+  useMutationRemoteData,
+  useQueryRemoteData,
+} from '@utils/useRemoteQuery'
 import * as O from '@fp/Option'
 import * as RD from '@devexperts/remote-data-ts'
 import { useStableO } from 'fp-ts-react-stable-hooks'
@@ -12,8 +15,15 @@ import { NonEmptyString } from 'io-ts-types'
 import * as V from 'victory'
 import * as dateFns from 'date-fns/fp'
 import { Combobox } from '@headlessui/react'
+import { fetchAndValidate, FetchError } from '@utils/fetch'
+import * as t from 'io-ts'
+import { unsafeUnwrap } from '@fp/TaskEither'
+import { serialize } from '@unsplash/sum-types'
 
 const showOptionString = O.getShow(str.Show)
+
+export const fakePostBody = t.type({ name: t.string }, 'FakePostBody')
+export interface FakePostBody extends t.TypeOf<typeof fakePostBody> {}
 
 const Home: NextPage = () => {
   const [stock, setStock] = useStableO<NonEmptyString>(O.none)
@@ -22,7 +32,7 @@ const Home: NextPage = () => {
 
   const findSomeStocks = useQueryRemoteData(
     [showOptionString.show(debouncedStockValue)],
-    () => findSymbol(debouncedStockValue),
+    () => findTicker(debouncedStockValue),
     { enabled: O.isSome(debouncedStockValue) },
   )
 
@@ -32,9 +42,36 @@ const Home: NextPage = () => {
     { enabled: O.isSome(selectedStock) },
   )
 
+  const fakePostTask = (body: FakePostBody) =>
+    pipe(
+      fetchAndValidate(fakePostBody, `/api/hello`, {
+        method: 'POST',
+        body: JSON.stringify(fakePostBody.encode(body)),
+      }),
+      unsafeUnwrap,
+    )
+
+  const mutation = useMutationRemoteData(['first-mutation'], fakePostTask)
   return (
     <div>
       <h1 className="text-3xl font-bold text-red-500">Hello world!</h1>
+      <button
+        className="bg-blue-500"
+        onClick={() => mutation.mutate({ name: 'MioBody' })}
+      >
+        Post me
+      </button>
+      {pipe(
+        mutation.lifeCycle,
+        RD.fold(
+          () => <div>Idle</div>,
+          () => <div>Loading</div>,
+          (fetchErr) => (
+            <div>{JSON.stringify(serialize<FetchError>(fetchErr))}</div>
+          ),
+          ({ name }) => <div>{name}</div>,
+        ),
+      )}
       <Combobox
         value={O.toNullable(selectedStock)}
         onChange={flow(O.fromNullable, setSelectedStock)}

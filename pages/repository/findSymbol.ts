@@ -46,22 +46,19 @@ const TickerResponse = t.readonly(
 )
 export interface TickerResponse extends t.TypeOf<typeof TickerResponse> {}
 
-const _findSymbolTask = (
+const _findTickerTask = (
   symbol: NonEmptyString,
 ): RTE.ReaderTaskEither<FrontendEnv, FetchError, TickerResponse> =>
   RTE.asksTaskEither(({ backendURL }) =>
-    fetchAndValidate(
-      TickerResponse,
-      `${backendURL}/symbol?identifier=${symbol}`,
-    ),
+    fetchAndValidate(TickerResponse, `${backendURL}/ticker?search=${symbol}`),
   )
 
-export const findSymbol: (
+export const findTicker: (
   stockValue: O.Option<NonEmptyString>,
 ) => Promise<TickerResponse> = flow(
   RTE.fromOption(() =>
     GenericFetchError({ message: 'Missing stock identifier' }),
   ),
-  RTE.chain(_findSymbolTask),
+  RTE.chain(_findTickerTask),
   RTE.runReaderUnsafeUnwrap(FrontendEnv),
 )
