@@ -63,10 +63,9 @@ const _getCandlesTask = (
 
 export const getCandles: (
   stockValue: O.Option<string>,
-) => Promise<CandlesResponse> = flow(
+) => RTE.ReaderTaskEither<FrontendEnv, FetchError, CandlesResponse> = flow(
   RTE.fromOption(() =>
     GenericFetchError({ message: 'Missing stock identifier' }),
   ),
   RTE.chain(_getCandlesTask),
-  RTE.runReaderUnsafeUnwrap(FrontendEnv),
 )

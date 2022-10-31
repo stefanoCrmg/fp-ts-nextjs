@@ -55,10 +55,9 @@ const _findTickerTask = (
 
 export const findTicker: (
   stockValue: O.Option<NonEmptyString>,
-) => Promise<TickerResponse> = flow(
+) => RTE.ReaderTaskEither<FrontendEnv, FetchError, TickerResponse> = flow(
   RTE.fromOption(() =>
     GenericFetchError({ message: 'Missing stock identifier' }),
   ),
   RTE.chain(_findTickerTask),
-  RTE.runReaderUnsafeUnwrap(FrontendEnv),
 )

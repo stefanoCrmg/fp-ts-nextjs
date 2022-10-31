@@ -1,12 +1,13 @@
-/* adapted from https://tanstack.com/ in order to use remote-data-ts */
 import * as RD from '@devexperts/remote-data-ts'
 import * as O from 'fp-ts/Option'
 import { match } from 'ts-pattern'
-
-import { QueryFunction, QueryKey } from '@tanstack/query-core'
+import { QueryKey } from '@tanstack/query-core'
 import {
   MutationFunction,
   MutationKey,
+  QueryFunctionContext,
+  RefetchOptions,
+  RefetchQueryFilters,
   UseMutateAsyncFunction,
   UseMutateFunction,
   useMutation,
@@ -15,26 +16,45 @@ import {
   UseQueryOptions,
 } from '@tanstack/react-query'
 import { FetchError } from '@utils/fetch'
+import * as RTE from '@fp/ReaderTaskEither'
+import { FrontendEnv } from './frontendEnv'
+import { pipe } from 'fp-ts/function'
 
-type ErrorWithStaleData<E, StaleData> = {
+type ErrorWithStaleData<E, A> = {
   readonly error: E
-  readonly staleData: O.Option<StaleData>
+  readonly staleData: O.Option<A>
+  readonly refetch: (options?: RefetchOptions & RefetchQueryFilters<A>) => void
 }
 
+const unwrapQueryFn =
+  <T, E, Key extends QueryKey = QueryKey>(
+    r: FrontendEnv,
+    queryFn: (
+      context: QueryFunctionContext<Key>,
+    ) => RTE.ReaderTaskEither<FrontendEnv, E, T>,
+  ) =>
+  (context: QueryFunctionContext<Key>): Promise<T> =>
+    pipe(queryFn(context), RTE.runReaderUnsafeUnwrap(r))
+
 export const useQueryRemoteData = <
-  TQueryFnData,
-  TData = TQueryFnData,
-  TQueryKey extends QueryKey = QueryKey,
+  QueryFnData,
+  E,
+  A = QueryFnData,
+  Key extends QueryKey = QueryKey,
 >(
-  queryKey: TQueryKey,
-  queryFn: QueryFunction<TQueryFnData, TQueryKey>,
-  options?: UseQueryOptions<TQueryFnData, FetchError, TData, TQueryKey>,
-): RD.RemoteData<ErrorWithStaleData<FetchError, TData>, TData> => {
-  const query = useQuery(queryKey, queryFn, options)
+  queryKey: Key,
+  queryFn: (
+    context: QueryFunctionContext<Key>,
+  ) => RTE.ReaderTaskEither<FrontendEnv, E, QueryFnData>,
+  options?: UseQueryOptions<QueryFnData, E, A, Key>,
+): RD.RemoteData<ErrorWithStaleData<E, A>, A> => {
+  const _queryFn = unwrapQueryFn(FrontendEnv, queryFn)
+  const query = useQuery(queryKey, _queryFn, options)
+
   return match(query)
     .with({ status: 'success' }, ({ data }) => RD.success(data))
-    .with({ status: 'error' }, ({ error, data }) =>
-      RD.failure({ error, staleData: O.fromNullable(data) }),
+    .with({ status: 'error' }, ({ error, data, refetch }) =>
+      RD.failure({ error, refetch, staleData: O.fromNullable(data) }),
     )
     .with({ status: 'loading' }, () => RD.pending)
     .exhaustive()

@@ -126,6 +126,20 @@ export const getJson = (response: Response): TE.TaskEither<FetchError, Json> =>
     )
     .otherwise(() => TE.left(NotJson()))
 
+export const validateJson =
+  <A, O = A>(codec: t.Type<A, O, unknown>, additionalInfo?: string) =>
+  (task: TE.TaskEither<FetchError, Json>): TE.TaskEither<FetchError, A> =>
+    pipe(
+      task,
+      TE.chainIOEitherK(
+        flow(
+          codec.decode,
+          E.mapLeft((errors) => DecodingFailure({ errors })),
+          observeDecodingFailure(additionalInfo),
+        ),
+      ),
+    )
+
 export const getJsonAndValidate =
   <A, O = A>(codec: t.Type<A, O, unknown>, additionalInfo?: string) =>
   (response: Response): TE.TaskEither<FetchError, A> =>
