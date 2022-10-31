@@ -19,6 +19,10 @@ import { fetchAndValidate, FetchError } from '@utils/fetch'
 import * as t from 'io-ts'
 import { unsafeUnwrap } from '@fp/TaskEither'
 import { serialize } from '@unsplash/sum-types'
+import { sprinkles } from 'styles/sprinkles.css'
+import { Container, HelloWorldTitle } from './index.css'
+import { style } from '@vanilla-extract/css'
+import { colors } from 'styles/tokens/colors'
 
 const showOptionString = O.getShow(str.Show)
 
@@ -53,12 +57,10 @@ const Home: NextPage = () => {
 
   const mutation = useMutationRemoteData(['first-mutation'], fakePostTask)
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-red-500">Hello world!</h1>
-      <button
-        className="bg-blue-500"
-        onClick={() => mutation.mutate({ name: 'MioBody' })}
-      >
+    <div className={Container}>
+      {/* className="text-3xl font-bold text-red-500" */}
+      <h1 className={HelloWorldTitle}>Hello world!</h1>
+      <button onClick={() => mutation.mutate({ name: 'MioBody' })}>
         Post me
       </button>
       {pipe(
