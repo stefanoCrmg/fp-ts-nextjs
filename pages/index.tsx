@@ -19,10 +19,7 @@ import { fetchAndValidate, FetchError } from '@utils/fetch'
 import * as t from 'io-ts'
 import { unsafeUnwrap } from '@fp/TaskEither'
 import { serialize } from '@unsplash/sum-types'
-import { sprinkles } from 'styles/sprinkles.css'
-import { Container, HelloWorldTitle } from './index.css'
-import { style } from '@vanilla-extract/css'
-import { colors } from 'styles/tokens/colors'
+import { HelloWorldTitle } from './index.css'
 
 const showOptionString = O.getShow(str.Show)
 
@@ -57,7 +54,7 @@ const Home: NextPage = () => {
 
   const mutation = useMutationRemoteData(['first-mutation'], fakePostTask)
   return (
-    <div className={Container}>
+    <div>
       {/* className="text-3xl font-bold text-red-500" */}
       <h1 className={HelloWorldTitle}>Hello world!</h1>
       <button onClick={() => mutation.mutate({ name: 'MioBody' })}>
@@ -94,7 +91,7 @@ const Home: NextPage = () => {
             RD.recover(({ staleData }) => staleData),
             RD.fold3(
               () => [],
-              (err) => [],
+              () => [],
               ({ results }) =>
                 results.map(({ name, ticker }, i) => (
                   <Combobox.Option key={`stock-${i}`} value={ticker}>
@@ -119,7 +116,7 @@ const Home: NextPage = () => {
           ),
           RD.fold3(
             () => <div>No Data</div>,
-            (err) => <div>No Data</div>,
+            () => <div>No Data</div>,
             (candles) => (
               <div className="flex flex-col justify-center items-center">
                 <div className="w-full max-w-2xl">

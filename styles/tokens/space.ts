@@ -46,4 +46,4 @@ export const space = {
   viewHeight: '100vh',
   viewWidth: '100vw',
   none: '0',
-} as const
+}

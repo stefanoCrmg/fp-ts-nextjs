@@ -24,9 +24,7 @@ const responsiveProperties = defineProperties({
       initial: '0 1 auto',
       none: 'none',
     },
-    flexBasis: {
-      ...vars.space,
-    },
+    flexBasis: vars.space,
     flexDirection: ['column', 'row'],
     flexGrow: flexibility,
     flexShrink: flexibility,
@@ -41,23 +39,13 @@ const responsiveProperties = defineProperties({
     left: vars.space,
     letterSpacing: vars.letterSpacings,
     lineHeight: vars.lineHeights,
-    marginBottom: {
-      ...vars.space,
-    },
-    marginLeft: {
-      ...vars.space,
-    },
-    marginRight: {
-      ...vars.space,
-    },
-    marginTop: {
-      ...vars.space,
-    },
+    marginBottom: vars.space,
+
+    marginLeft: vars.space,
+    marginRight: vars.space,
+    marginTop: vars.space,
     maxHeight: vars.space,
-    maxWidth: {
-      ...vars.space,
-      none: 'none',
-    },
+    maxWidth: vars.space,
     minHeight: vars.space,
     minWidth: vars.space,
     overflow: ['auto', 'hidden', 'scroll', 'unset'],
@@ -69,9 +57,7 @@ const responsiveProperties = defineProperties({
     right: vars.space,
     textAlign: ['center', 'left', 'right'],
     top: vars.space,
-    width: {
-      ...vars.space,
-    },
+    width: vars.space,
   },
   shorthands: {
     margin: ['marginTop', 'marginBottom', 'marginLeft', 'marginRight'],

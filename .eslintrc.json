@@ -21,6 +21,6 @@
     "@typescript-eslint/ban-types": "off",
     "@typescript-eslint/no-explicit-any": "error",
     "@typescript-eslint/no-empty-interface": "off",
-    "import/no-unresolved": { "commonjs": true, "amd": true }
+    "import/no-unresolved": "warn"
   }
 }
