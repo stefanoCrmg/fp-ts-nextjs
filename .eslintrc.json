@@ -1,10 +1,9 @@
 {
   "extends": [
+    "next",
     "next/core-web-vitals",
     "prettier",
     "plugin:@typescript-eslint/recommended",
-    "plugin:import/errors",
-    "plugin:import/warnings",
     "plugin:import/typescript",
     "plugin:node/recommended-module",
     "plugin:fp-ts/recommended"
@@ -20,7 +19,6 @@
     "import/no-named-as-default-member": "off",
     "@typescript-eslint/ban-types": "off",
     "@typescript-eslint/no-explicit-any": "error",
-    "@typescript-eslint/no-empty-interface": "off",
-    "import/no-unresolved": "warn"
+    "@typescript-eslint/no-empty-interface": "off"
   }
 }

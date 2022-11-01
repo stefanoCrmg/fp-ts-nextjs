@@ -1,8 +1,8 @@
 import type { NextPage } from 'next'
 import { flow, pipe } from 'fp-ts/function'
 import { useDebouncedValue } from '@mantine/hooks'
-import { findTicker } from './repository/findSymbol'
-import { getCandles } from './repository/getCandles'
+import { findTicker } from '../repository/findSymbol'
+import { getCandles } from '../repository/getCandles'
 import {
   useMutationRemoteData,
   useQueryRemoteData,
@@ -19,7 +19,7 @@ import { fetchAndValidate, FetchError } from '@utils/fetch'
 import * as t from 'io-ts'
 import { unsafeUnwrap } from '@fp/TaskEither'
 import { serialize } from '@unsplash/sum-types'
-import { HelloWorldTitle } from './index.css'
+import { HelloWorldTitle } from '../styles/index.css'
 
 const showOptionString = O.getShow(str.Show)
 

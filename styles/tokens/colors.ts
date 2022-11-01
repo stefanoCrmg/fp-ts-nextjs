@@ -1,9 +1,3 @@
-import { pipe } from 'fp-ts/function'
-import { ordString } from 'fp-ts/lib/Ord'
-import { Semigroup } from 'fp-ts/lib/Semigroup'
-import * as RR from 'fp-ts/ReadonlyRecord'
-import * as R from 'fp-ts/Record'
-
 type AvailableColors =
   | 'gray'
   | 'red'

@@ -7,7 +7,6 @@ import { pipe } from 'fp-ts/function'
 import { JsonFromString } from 'io-ts-types'
 
 export default function handler(_req: NextApiRequest, res: NextApiResponse) {
-  console.log(_req.body)
   return pipe(
     JsonFromString.pipe(fakePostBody).decode(_req.body),
     E.matchW(

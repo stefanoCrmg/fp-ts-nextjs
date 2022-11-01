@@ -1,3 +1,4 @@
+import { Tokens } from './tokens/index'
 import {
   createGlobalTheme,
   createGlobalThemeContract,
@@ -8,7 +9,8 @@ export const getVarName = (_value: string | null, path: string[]) =>
   path.join('-').replace('.', '_').replace('/', '__')
 
 const { colors, ...restTokens } = tokens
-const globalThemeContract = createGlobalThemeContract(restTokens, getVarName)
+const basicTokens: Omit<Tokens, 'colors'> = restTokens
+const globalThemeContract = createGlobalThemeContract(basicTokens, getVarName)
 createGlobalTheme(':root', globalThemeContract, restTokens)
 
 const makeColorScheme = (mode: 'light' | 'dark') => ({
