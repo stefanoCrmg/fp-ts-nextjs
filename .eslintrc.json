@@ -8,6 +8,7 @@
     "plugin:node/recommended-module",
     "plugin:fp-ts/recommended"
   ],
+  "plugins": ["@typescript-eslint"],
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "project": "./tsconfig.json"
