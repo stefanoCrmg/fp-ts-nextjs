@@ -1,14 +1,13 @@
 import { globalStyle } from '@vanilla-extract/css'
 import { vars } from 'styles/theme.css'
-import './resets.css'
 
-globalStyle('#__next', {
-  margin: 0,
-  padding: 0,
-  borderWidth: 0,
+globalStyle('html, body', {
   height: '100%',
-  fontSize: '100%',
+  textRendering: 'optimizeLegibility',
   backgroundColor: vars.palette.background,
   color: vars.palette.text,
-  textRendering: 'optimizeLegibility',
+})
+
+globalStyle('#__next', {
+  isolation: 'isolate',
 })

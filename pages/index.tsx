@@ -20,6 +20,7 @@ import * as t from 'io-ts'
 import { unsafeUnwrap } from '@fp/TaskEither'
 import { serialize } from '@unsplash/sum-types'
 import { HelloWorldTitle } from '../styles/index.css'
+import { ThemeToggle } from './components/themeAtom'
 
 const showOptionString = O.getShow(str.Show)
 
@@ -57,6 +58,7 @@ const Home: NextPage = () => {
     <div>
       {/* className="text-3xl font-bold text-red-500" */}
       <h1 className={HelloWorldTitle}>Hello world!</h1>
+      <ThemeToggle />
       <button onClick={() => mutation.mutate({ name: 'MioBody' })}>
         Post me
       </button>

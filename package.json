@@ -32,6 +32,7 @@
     "io-ts-reporters": "^2.0.1",
     "io-ts-types": "^0.5.16",
     "jotai": "^1.8.4",
+    "modern-normalize": "^1.1.0",
     "monocle-ts": "^2.3.13",
     "newtype-ts": "^0.3.5",
     "next": "12.2.3",

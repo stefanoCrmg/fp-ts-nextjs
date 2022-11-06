@@ -7,11 +7,12 @@ const flexibility = [0, 1, 2, 3, 4] as const
 
 const responsiveProperties = defineProperties({
   conditions: {
-    xs: {},
+    xs: { '@media': `screen and (min-width: ${breakpoints.xs}px)` },
     sm: { '@media': `screen and (min-width: ${breakpoints.sm}px)` },
     md: { '@media': `screen and (min-width: ${breakpoints.md}px)` },
     lg: { '@media': `screen and (min-width: ${breakpoints.lg}px)` },
     xl: { '@media': `screen and (min-width: ${breakpoints.xl}px)` },
+    xxl: { '@media': `screen and (min-width: ${breakpoints.xxl}px)` },
   },
   defaultCondition: 'xs',
   properties: {
@@ -40,7 +41,6 @@ const responsiveProperties = defineProperties({
     letterSpacing: vars.letterSpacings,
     lineHeight: vars.lineHeights,
     marginBottom: vars.space,
-
     marginLeft: vars.space,
     marginRight: vars.space,
     marginTop: vars.space,
