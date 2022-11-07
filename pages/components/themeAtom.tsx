@@ -30,6 +30,11 @@ export const baseThemeAtom = atomWithStorage<SupportedTheme>(
   'light',
 )
 
+/*
+ * TODO: a useEffect on theme would guarantee having different tab in-sync with theme change.
+ * maybe rewrite atomWithStorage to extend its eventListener on storage with a DOM update?
+ * https://github.com/pmndrs/jotai/blob/main/src/utils/atomWithStorage.ts#L83
+ */
 const themeAtom = atom(
   (get) => get(baseThemeAtom),
   (_get, set, newValue: SupportedTheme) =>
