@@ -20,7 +20,7 @@ import * as t from 'io-ts'
 import { unsafeUnwrap } from '@fp/TaskEither'
 import { serialize } from '@unsplash/sum-types'
 import { HelloWorldTitle } from '../styles/index.css'
-import { ThemeToggle } from './components/themeAtom'
+import { ThemeToggle } from '../components/themeAtom'
 
 const showOptionString = O.getShow(str.Show)
 
