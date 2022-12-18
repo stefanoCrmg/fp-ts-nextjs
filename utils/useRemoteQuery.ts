@@ -1,14 +1,12 @@
 import * as RD from '@devexperts/remote-data-ts'
 import * as O from 'fp-ts/Option'
 import { match } from 'ts-pattern'
-import { QueryKey } from '@tanstack/query-core'
 import {
-  MutationFunction,
   MutationKey,
   QueryFunctionContext,
+  QueryKey,
   RefetchOptions,
   RefetchQueryFilters,
-  UseMutateAsyncFunction,
   UseMutateFunction,
   useMutation,
   UseMutationOptions,
@@ -36,6 +34,16 @@ const unwrapQueryFn =
   (context: QueryFunctionContext<Key>): Promise<T> =>
     pipe(queryFn(context), RTE.runReaderUnsafeUnwrap(r))
 
+const unwrapMutationFn =
+  <A, E, MutationVariables = void>(
+    r: FrontendEnv,
+    mutationFn: (
+      mv: MutationVariables,
+    ) => RTE.ReaderTaskEither<FrontendEnv, E, A>,
+  ) =>
+  (mv: MutationVariables): Promise<A> =>
+    pipe(mutationFn(mv), RTE.runReaderUnsafeUnwrap(r))
+
 export const useQueryRemoteData = <
   QueryFnData,
   E,
@@ -62,20 +70,28 @@ export const useQueryRemoteData = <
 
 type UseMutationRemoteDataResult<TData, TError, TVariables, TContext> = {
   mutate: UseMutateFunction<TData, TError, TVariables, TContext>
-  mutateAsync: UseMutateAsyncFunction<TData, TError, TVariables, TContext>
   lifeCycle: RD.RemoteData<TError, TData>
 }
 
 export const useMutationRemoteData = <
-  TData,
-  TVariables = void,
+  A,
+  E,
+  MutationVariables = void,
   TContext = unknown,
 >(
   mutationKey: MutationKey,
-  mutationFn: MutationFunction<TData, TVariables>,
-  mutationOptions?: UseMutationOptions<TData, FetchError, TVariables, TContext>,
-): UseMutationRemoteDataResult<TData, FetchError, TVariables, TContext> => {
-  const mutation = useMutation(mutationKey, mutationFn, mutationOptions)
+  mutationFn: (
+    variables: MutationVariables,
+  ) => RTE.ReaderTaskEither<FrontendEnv, E, A>,
+  mutationOptions?: UseMutationOptions<
+    A,
+    FetchError,
+    MutationVariables,
+    TContext
+  >,
+): UseMutationRemoteDataResult<A, FetchError, MutationVariables, TContext> => {
+  const _mutationFn = unwrapMutationFn(FrontendEnv, mutationFn)
+  const mutation = useMutation(mutationKey, _mutationFn, mutationOptions)
 
   const lifeCycle = match(mutation)
     .with({ status: 'success' }, ({ data }) => RD.success(data))
@@ -86,7 +102,6 @@ export const useMutationRemoteData = <
 
   return {
     mutate: mutation.mutate,
-    mutateAsync: mutation.mutateAsync,
     lifeCycle,
   }
 }

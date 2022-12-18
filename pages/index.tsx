@@ -17,10 +17,11 @@ import * as dateFns from 'date-fns/fp'
 import { Combobox } from '@headlessui/react'
 import { fetchAndValidate, FetchError } from '@utils/fetch'
 import * as t from 'io-ts'
-import { unsafeUnwrap } from '@fp/TaskEither'
+import * as RTE from '@fp/ReaderTaskEither'
 import { serialize } from '@unsplash/sum-types'
 import { HelloWorldTitle } from '../styles/index.css'
 import { ThemeToggle } from '../components/themeAtom'
+import { FrontendEnv } from '../utils/frontendEnv'
 
 const showOptionString = O.getShow(str.Show)
 
@@ -44,13 +45,16 @@ const Home: NextPage = () => {
     { enabled: O.isSome(selectedStock) },
   )
 
-  const fakePostTask = (body: FakePostBody) =>
-    pipe(
-      fetchAndValidate(fakePostBody, `/api/hello`, {
-        method: 'POST',
-        body: JSON.stringify(fakePostBody.encode(body)),
-      }),
-      unsafeUnwrap,
+  const fakePostTask = (
+    body: FakePostBody,
+  ): RTE.ReaderTaskEither<FrontendEnv, FetchError, { name: string }> =>
+    RTE.asksTaskEither(({ nextEdgeFunctionURL }) =>
+      pipe(
+        fetchAndValidate(fakePostBody, `${nextEdgeFunctionURL}/hello`, {
+          method: 'POST',
+          body: JSON.stringify(fakePostBody.encode(body)),
+        }),
+      ),
     )
 
   const mutation = useMutationRemoteData(['first-mutation'], fakePostTask)
