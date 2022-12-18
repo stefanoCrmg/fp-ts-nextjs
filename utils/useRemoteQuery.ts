@@ -75,14 +75,13 @@ type UseMutationRemoteDataResult<TData, TError, TVariables, TContext> = {
 
 export const useMutationRemoteData = <
   A,
-  E,
   MutationVariables = void,
   TContext = unknown,
 >(
   mutationKey: MutationKey,
   mutationFn: (
     variables: MutationVariables,
-  ) => RTE.ReaderTaskEither<FrontendEnv, E, A>,
+  ) => RTE.ReaderTaskEither<FrontendEnv, FetchError, A>,
   mutationOptions?: UseMutationOptions<
     A,
     FetchError,
@@ -93,7 +92,7 @@ export const useMutationRemoteData = <
   const _mutationFn = unwrapMutationFn(FrontendEnv, mutationFn)
   const mutation = useMutation(mutationKey, _mutationFn, mutationOptions)
 
-  const lifeCycle = match(mutation)
+  const lifeCycle: RD.RemoteData<FetchError, A> = match(mutation)
     .with({ status: 'success' }, ({ data }) => RD.success(data))
     .with({ status: 'error' }, ({ error }) => RD.failure(error))
     .with({ status: 'idle' }, () => RD.initial)
