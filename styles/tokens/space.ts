@@ -8,6 +8,7 @@ export const space = {
   min: 'min-content',
   viewHeight: '100vh',
   viewWidth: '100vw',
+  centerAll: '0 auto',
   '000': '-.5rem',
   '00': '-.25rem',
   '1': '.25rem',

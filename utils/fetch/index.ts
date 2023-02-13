@@ -1,172 +1,126 @@
-/* adapted from https://github.com/unsplash/request-frp */
-import { formatValidationErrors } from 'io-ts-reporters'
+import * as Match from '@effect/match'
 import * as ContentTypeHelpers from 'content-type'
-import * as E from 'fp-ts/Either'
-import * as IOE from 'fp-ts/IOEither'
-import * as IO from '@fp/IO'
-import * as C from 'fp-ts/Console'
-import * as t from 'io-ts'
-import { constVoid, flow, pipe } from 'fp-ts/function'
-import * as O from '@fp/Option'
-import * as TE from '@fp/TaskEither'
-import {
-  Member,
-  create,
-  _,
-  serialize,
-  Serialized,
-  deserialize,
-} from '@unsplash/sum-types'
-import { match } from 'ts-pattern'
-import { Json } from 'fp-ts/Json'
-import { NonEmptyString } from 'io-ts-types'
-import * as pc from 'picocolors'
+import * as E from '@fp-ts/core/Either'
+import * as S from '@fp-ts/schema'
+import { flow, pipe } from '@fp-ts/core/function'
+import * as O from '@fp-ts/core/Option'
+import * as Z from '@effect/io/Effect'
+import { ParseError } from '@fp-ts/schema/ParseResult'
+import type { NonEmptyReadonlyArray } from '@fp-ts/core/ReadonlyArray'
 
 const CONTENT_TYPE_RESPONSE_HEADER = 'content-type'
 const CONTENT_TYPE_JSON = 'application/json'
 
-export type DecodingFailure = Member<'DecodingFailure', { errors: t.Errors }>
-export type GenericFetchError = Member<'GenericFetchError', { message: string }>
+class DecodingFailure {
+  readonly _tag = 'DecodingFailure'
+  constructor(readonly errors: NonEmptyReadonlyArray<ParseError>) {}
+}
+
+class GenericFetchError {
+  readonly _tag = 'GenericFetchError'
+  constructor(readonly message: string) {}
+}
+
+class HttpClientError {
+  readonly _tag = 'HttpClientError'
+  constructor(
+    readonly statusCode: number,
+    readonly data?: Record<string, unknown>,
+  ) {}
+}
+
+class HttpServerError {
+  readonly _tag = 'HttpClientError'
+  constructor(
+    readonly statusCode: number,
+    readonly data?: Record<string, unknown>,
+  ) {}
+}
+
+class NotJson {
+  readonly _tag = 'NotJson'
+}
+
+class JsonParseError {
+  readonly _tag = 'JsonParseError'
+  constructor(readonly message: string) {}
+}
+
 export type FetchError =
-  | Member<
-      'HttpClientError',
-      { statusCode: number; data?: Record<string, unknown> }
-    >
-  | Member<
-      'HttpServerError',
-      { statusCode: number; data?: Record<string, unknown> }
-    >
-  | Member<'NotJson'>
-  | Member<'JsonParseError', { message: string }>
   | GenericFetchError
   | DecodingFailure
+  | HttpClientError
+  | HttpServerError
+  | NotJson
+  | JsonParseError
 
-export const {
-  mk: { GenericFetchError },
-} = create<GenericFetchError>()
-
-export const {
-  mk: {
-    JsonParseError,
-    NotJson,
-    DecodingFailure,
-    HttpClientError,
-    HttpServerError,
-  },
-  match: matchFetchError,
-} = create<FetchError>()
-
-export const serializeFetchError: (f: FetchError) => Serialized<FetchError> =
-  serialize<FetchError>
-export const deserializeFetchError: () => (
-  se: Serialized<FetchError>,
-) => FetchError = deserialize<FetchError>
-
-export const observeDecodingFailure =
-  (additionalInfo?: string) =>
-  <A>(someFailure: E.Either<FetchError, A>): IOE.IOEither<FetchError, A> =>
-    pipe(
-      someFailure,
-      IOE.fromEither,
-      IOE.orElseFirstIOK(
-        flow(
-          IO.of,
-          IO.chainFirst(() =>
-            IO.when(NonEmptyString.is(additionalInfo))(C.log(additionalInfo)),
-          ),
-          IO.chain(
-            matchFetchError({
-              DecodingFailure: ({ errors }) =>
-                pipe(errors, formatValidationErrors, C.error),
-              [_]: () => constVoid,
-            }),
-          ),
-        ),
-      ),
-    )
-
-export const fromFetch: (
+export const fromFetch = (
   input: RequestInfo | URL,
   init?: RequestInit | undefined,
-) => TE.TaskEither<GenericFetchError, Response> = TE.tryCatchK(
-  fetch,
-  flow(
-    (error) => (error instanceof Error ? error.message : 'Unknown error.'),
-    (message) => GenericFetchError({ message }),
-  ),
-)
-
-const responseIsJson: (response: Response) => boolean = flow(
-  (response: Response) => response.headers.get(CONTENT_TYPE_RESPONSE_HEADER),
-  O.fromNullable,
-  O.map(flow(ContentTypeHelpers.parse, (result) => result.type)),
-  O.exists((type) => type === CONTENT_TYPE_JSON),
-)
-const responseIs40x = (response: Response): boolean =>
-  response.status >= 400 && response.status <= 451
-const responseIs50x = (response: Response): boolean =>
-  response.status >= 500 && response.status <= 511
-
-export const getJson = (response: Response): TE.TaskEither<FetchError, Json> =>
-  match(response)
-    .when(responseIs40x, (r) =>
-      TE.left(HttpClientError({ statusCode: r.status })),
-    )
-    .when(responseIs50x, (r) =>
-      TE.left(HttpServerError({ statusCode: r.status })),
-    )
-    .when(responseIsJson, (r) =>
-      TE.tryCatch(
-        () => r.json() as Promise<Json>,
-        (error) =>
-          JsonParseError({
-            message: error instanceof Error ? error.message : 'Unknown error.',
-          }),
-      ),
-    )
-    .otherwise(() => TE.left(NotJson()))
-
-export const validateJson =
-  <A, O = A>(codec: t.Type<A, O, unknown>, additionalInfo?: string) =>
-  (task: TE.TaskEither<FetchError, Json>): TE.TaskEither<FetchError, A> =>
-    pipe(
-      task,
-      TE.chainIOEitherK(
-        flow(
-          codec.decode,
-          E.mapLeft((errors) => DecodingFailure({ errors })),
-          observeDecodingFailure(additionalInfo),
-        ),
-      ),
-    )
-
-export const getJsonAndValidate =
-  <A, O = A>(codec: t.Type<A, O, unknown>, additionalInfo?: string) =>
-  (response: Response): TE.TaskEither<FetchError, A> =>
-    pipe(
-      getJson(response),
-      TE.chainIOEitherK(
-        flow(
-          codec.decode,
-          E.mapLeft((errors) => DecodingFailure({ errors })),
-          observeDecodingFailure(additionalInfo),
-        ),
-      ),
-    )
-
-export const fetchAndValidate = <A, O = A>(
-  codec: t.Type<A, O, unknown>,
-  input: RequestInfo | URL,
-  init?: RequestInit | undefined,
-): TE.TaskEither<FetchError, A> =>
-  pipe(
-    fromFetch(input, init),
-    TE.chain(
-      getJsonAndValidate(
-        codec,
-        `While requesting ${pc.blue(pc.underline(codec.name))} from ${pc.yellow(
-          input.toString(),
-        )} I got some errors:`,
-      ),
+): Z.Effect<never, GenericFetchError, Response> =>
+  Z.tryCatchPromise(
+    () => fetch(input, init),
+    flow(
+      (error) => (error instanceof Error ? error.message : 'Unknown error.'),
+      (message) => new GenericFetchError(message),
     ),
   )
+
+const contentTypeIsJson = (headers: Headers): boolean =>
+  pipe(
+    headers.get(CONTENT_TYPE_RESPONSE_HEADER),
+    O.fromNullable,
+    O.map(flow(ContentTypeHelpers.parse, (result) => result.type)),
+    O.exists((type) => type === CONTENT_TYPE_JSON),
+  )
+const statusCodeIs40x = (status: number): boolean =>
+  status >= 400 && status <= 451
+const statusCodeIs50x = (status: number): boolean =>
+  status >= 500 && status <= 511
+
+const matchResponse: (
+  input: Response,
+) => Z.Effect<
+  never,
+  HttpClientError | HttpServerError | JsonParseError | NotJson,
+  JSON
+> = pipe(
+  Match.type<Response>(),
+  Match.when({ status: statusCodeIs40x }, (r) =>
+    Z.fail(new HttpClientError(r.status)),
+  ),
+  Match.when({ status: statusCodeIs50x }, (r) =>
+    Z.fail(new HttpServerError(r.status)),
+  ),
+  Match.when({ headers: contentTypeIsJson }, (r) =>
+    Z.tryCatchPromise(
+      () => r.json() as Promise<JSON>,
+      (error) =>
+        new JsonParseError(
+          error instanceof Error ? error.message : 'Unknown error.',
+        ),
+    ),
+  ),
+  Match.orElse(() => Z.fail(new NotJson())),
+)
+
+export const getJsonAndValidate =
+  <A>(schema: S.Schema<A>) =>
+  (response: Response): Z.Effect<never, FetchError, A> =>
+    pipe(
+      matchResponse(response),
+      Z.flatMap((json) =>
+        pipe(
+          S.decode(schema)(json, { isUnexpectedAllowed: true }),
+          E.mapLeft((errors) => new DecodingFailure(errors)),
+          Z.fromEither,
+        ),
+      ),
+    )
+
+export const fetchAndValidate = <A>(
+  schema: S.Schema<A>,
+  input: RequestInfo | URL,
+  init?: RequestInit | undefined,
+): Z.Effect<never, FetchError, A> =>
+  pipe(fromFetch(input, init), Z.flatMap(getJsonAndValidate(schema)))

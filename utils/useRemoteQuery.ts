@@ -14,11 +14,11 @@ import {
   UseQueryOptions,
 } from '@tanstack/react-query'
 import { FetchError } from '@utils/fetch'
-import * as RTE from '@fp/ReaderTaskEither'
-import { FrontendEnv } from './frontendEnv'
+import * as Z from '@effect/io/Effect'
+import { FrontendEnv, FrontendService } from './frontendEnv'
 import { pipe } from 'fp-ts/function'
 
-type ErrorWithStaleData<E, A> = {
+export type ErrorWithStaleData<E, A> = {
   readonly error: E
   readonly staleData: O.Option<A>
   readonly refetch: (options?: RefetchOptions & RefetchQueryFilters<A>) => void
@@ -26,23 +26,21 @@ type ErrorWithStaleData<E, A> = {
 
 const unwrapQueryFn =
   <T, E, Key extends QueryKey = QueryKey>(
-    r: FrontendEnv,
+    service: FrontendEnv,
     queryFn: (
       context: QueryFunctionContext<Key>,
-    ) => RTE.ReaderTaskEither<FrontendEnv, E, T>,
+    ) => Z.Effect<FrontendEnv, E, T>,
   ) =>
   (context: QueryFunctionContext<Key>): Promise<T> =>
-    pipe(queryFn(context), RTE.runReaderUnsafeUnwrap(r))
+    pipe(queryFn(context), Z.provideService(FrontendEnv, service), Z.runPromise)
 
 const unwrapMutationFn =
   <A, E, MutationVariables = void>(
-    r: FrontendEnv,
-    mutationFn: (
-      mv: MutationVariables,
-    ) => RTE.ReaderTaskEither<FrontendEnv, E, A>,
+    service: FrontendEnv,
+    mutationFn: (mv: MutationVariables) => Z.Effect<FrontendEnv, E, A>,
   ) =>
   (mv: MutationVariables): Promise<A> =>
-    pipe(mutationFn(mv), RTE.runReaderUnsafeUnwrap(r))
+    pipe(mutationFn(mv), Z.provideService(FrontendEnv, service), Z.runPromise)
 
 export const useQueryRemoteData = <
   QueryFnData,
@@ -53,10 +51,10 @@ export const useQueryRemoteData = <
   queryKey: Key,
   queryFn: (
     context: QueryFunctionContext<Key>,
-  ) => RTE.ReaderTaskEither<FrontendEnv, E, QueryFnData>,
+  ) => Z.Effect<FrontendEnv, E, QueryFnData>,
   options?: UseQueryOptions<QueryFnData, E, A, Key>,
 ): RD.RemoteData<ErrorWithStaleData<E, A>, A> => {
-  const _queryFn = unwrapQueryFn(FrontendEnv, queryFn)
+  const _queryFn = unwrapQueryFn(FrontendService, queryFn)
   const query = useQuery(queryKey, _queryFn, options)
 
   return match(query)
@@ -81,7 +79,7 @@ export const useMutationRemoteData = <
   mutationKey: MutationKey,
   mutationFn: (
     variables: MutationVariables,
-  ) => RTE.ReaderTaskEither<FrontendEnv, FetchError, A>,
+  ) => Z.Effect<FrontendEnv, FetchError, A>,
   mutationOptions?: UseMutationOptions<
     A,
     FetchError,
@@ -89,7 +87,7 @@ export const useMutationRemoteData = <
     TContext
   >,
 ): UseMutationRemoteDataResult<A, FetchError, MutationVariables, TContext> => {
-  const _mutationFn = unwrapMutationFn(FrontendEnv, mutationFn)
+  const _mutationFn = unwrapMutationFn(FrontendService, mutationFn)
   const mutation = useMutation(mutationKey, _mutationFn, mutationOptions)
 
   const lifeCycle: RD.RemoteData<FetchError, A> = match(mutation)

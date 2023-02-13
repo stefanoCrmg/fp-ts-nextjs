@@ -60,7 +60,6 @@ const Home: NextPage = () => {
   const mutation = useMutationRemoteData(['first-mutation'], fakePostTask)
   return (
     <div>
-      {/* className="text-3xl font-bold text-red-500" */}
       <h1 className={HelloWorldTitle}>Hello world!</h1>
       <ThemeToggle />
       <button onClick={() => mutation.mutate({ name: 'MioBody' })}>
