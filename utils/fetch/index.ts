@@ -110,7 +110,7 @@ export const matchResponse = (
 
 export const getJsonAndValidate =
   <A>(schema: S.Schema<A>) =>
-  (response: Response) =>
+  (response: Response): Z.Effect<never, FetchError, A> =>
     pipe(
       matchResponse(response),
       Z.flatMap((json) =>
