@@ -1,10 +1,11 @@
-import * as Match from '@effect/match'
+import { match } from 'ts-pattern'
 import * as ContentTypeHelpers from 'content-type'
 import * as E from '@fp-ts/core/Either'
 import * as S from '@fp-ts/schema'
 import { flow, pipe } from '@fp-ts/core/function'
 import * as O from '@fp-ts/core/Option'
 import * as Z from '@effect/io/Effect'
+import { Json } from 'fp-ts/Json'
 import { ParseError } from '@fp-ts/schema/ParseResult'
 import type { NonEmptyReadonlyArray } from '@fp-ts/core/ReadonlyArray'
 
@@ -78,35 +79,38 @@ const statusCodeIs40x = (status: number): boolean =>
 const statusCodeIs50x = (status: number): boolean =>
   status >= 500 && status <= 511
 
-const matchResponse: (
-  input: Response,
-) => Z.Effect<
+export const matchResponse = (
+  response: Response,
+): Z.Effect<
   never,
   HttpClientError | HttpServerError | JsonParseError | NotJson,
-  JSON
-> = pipe(
-  Match.type<Response>(),
-  Match.when({ status: statusCodeIs40x }, (r) =>
-    Z.fail(new HttpClientError(r.status)),
-  ),
-  Match.when({ status: statusCodeIs50x }, (r) =>
-    Z.fail(new HttpServerError(r.status)),
-  ),
-  Match.when({ headers: contentTypeIsJson }, (r) =>
-    Z.tryCatchPromise(
-      () => r.json() as Promise<JSON>,
-      (error) =>
-        new JsonParseError(
-          error instanceof Error ? error.message : 'Unknown error.',
+  Json
+> =>
+  match(response)
+    .when(
+      (response) => statusCodeIs40x(response.status),
+      (r) => Z.fail(new HttpClientError(r.status)),
+    )
+    .when(
+      (response) => statusCodeIs50x(response.status),
+      (r) => Z.fail(new HttpServerError(r.status)),
+    )
+    .when(
+      (response) => contentTypeIsJson(response.headers),
+      (r) =>
+        Z.tryCatchPromise(
+          () => r.json() as Promise<Json>,
+          (error) =>
+            new JsonParseError(
+              error instanceof Error ? error.message : 'Unknown error.',
+            ),
         ),
-    ),
-  ),
-  Match.orElse(() => Z.fail(new NotJson())),
-)
+    )
+    .otherwise(() => Z.fail(new NotJson()))
 
 export const getJsonAndValidate =
   <A>(schema: S.Schema<A>) =>
-  (response: Response): Z.Effect<never, FetchError, A> =>
+  (response: Response) =>
     pipe(
       matchResponse(response),
       Z.flatMap((json) =>

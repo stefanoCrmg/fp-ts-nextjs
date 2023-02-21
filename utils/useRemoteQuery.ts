@@ -15,7 +15,14 @@ import {
 } from '@tanstack/react-query'
 import { FetchError } from '@utils/fetch'
 import * as Z from '@effect/io/Effect'
-import { FrontendEnv, FrontendService } from './frontendEnv'
+import {
+  FrontendEnv,
+  FrontendService,
+  envSource,
+  FrontendConfig,
+  frontEndSource,
+  FrontendLive,
+} from './frontendEnv'
 import { pipe } from 'fp-ts/function'
 
 export type ErrorWithStaleData<E, A> = {
@@ -24,15 +31,28 @@ export type ErrorWithStaleData<E, A> = {
   readonly refetch: (options?: RefetchOptions & RefetchQueryFilters<A>) => void
 }
 
+const wtf = pipe(
+  envSource.load(FrontendConfig),
+  Z.tapBoth(
+    (err) => Z.logError(JSON.stringify(err)),
+    (_) => Z.log(JSON.stringify(_)),
+  ),
+)
 const unwrapQueryFn =
   <T, E, Key extends QueryKey = QueryKey>(
-    service: FrontendEnv,
+    _service: FrontendEnv,
     queryFn: (
       context: QueryFunctionContext<Key>,
     ) => Z.Effect<FrontendEnv, E, T>,
   ) =>
-  (context: QueryFunctionContext<Key>): Promise<T> =>
-    pipe(queryFn(context), Z.provideService(FrontendEnv, service), Z.runPromise)
+  (context: QueryFunctionContext<Key>): Promise<T> => {
+    console.log('Hey env: ', process.env.NEXT_PUBLIC_BACKEND_URL)
+    return pipe(
+      queryFn(context),
+      Z.provideSomeLayer(FrontendLive),
+      Z.runPromise,
+    )
+  }
 
 const unwrapMutationFn =
   <A, E, MutationVariables = void>(
