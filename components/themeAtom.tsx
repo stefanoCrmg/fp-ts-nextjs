@@ -1,30 +1,36 @@
 import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
-import * as IO from '@fp/IO'
-import * as O from 'fp-ts/Option'
-import * as IOO from 'fp-ts/IOOption'
-import * as DOM from 'fp-ts-std/DOM'
-import { pipe } from 'fp-ts/function'
+import * as O from '@fp-ts/core/Option'
+import * as Z from '@effect/io/Effect'
+import { constVoid, pipe } from '@fp-ts/core/function'
 import { useEffect } from 'react'
-import { SetAtom } from 'jotai/core/atom'
 
 type SupportedTheme = 'dark' | 'light'
 
 const setDataset =
   <A extends string>(name: string, value: A) =>
-  (htlmElement: HTMLElement): IO.IO<void> =>
-  () => {
-    htlmElement.dataset[name] = value
-  }
+  (htlmElement: HTMLElement): Z.Effect<never, never, void> =>
+    Z.sync(() => {
+      htlmElement.dataset[name] = value
+    })
+
+const DOMquerySelector =
+  (q: string) =>
+  (parentNode: ParentNode): Z.Effect<never, never, O.Option<Element>> =>
+    Z.sync(() => O.fromNullable(parentNode.querySelector(q)))
 
 const isHTMLElement = (e: Element): e is HTMLElement => e instanceof HTMLElement
 
-const updateDOMDataTheme = (theme: SupportedTheme): IO.IO<void> =>
+const updateDOMDataTheme = (
+  theme: SupportedTheme,
+): Z.Effect<never, never, void> =>
   pipe(
     document,
-    DOM.querySelector('body'),
-    IO.map(O.filter(isHTMLElement)),
-    IOO.chainIOK(setDataset('theme', theme)),
+    DOMquerySelector('body'),
+    Z.map(O.filter(isHTMLElement)),
+    Z.flatMap(
+      O.match(() => Z.succeed(constVoid()), setDataset('theme', theme)),
+    ),
   )
 
 const themeAtom = atomWithStorage<SupportedTheme>('themePreference', 'light')
@@ -46,18 +52,15 @@ const themeAtom = atomWithStorage<SupportedTheme>('themePreference', 'light')
  *    ),
  * )
  */
-
-type UseTheme = [SupportedTheme, SetAtom<SupportedTheme, void>]
-export const useTheme = (): UseTheme => {
+export const useTheme = () => {
   const [theme, setTheme] = useAtom(themeAtom)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-
-    pipe(updateDOMDataTheme(theme), IO.execute)
+    Z.runSync(updateDOMDataTheme(theme))
   }, [theme])
 
-  return [theme, setTheme]
+  return [theme, setTheme] as const
 }
 
 export const ThemeToggle: React.FC = () => {
