@@ -5,6 +5,7 @@ import * as S from '@fp-ts/schema'
 import { flow, pipe } from '@fp-ts/core/function'
 import * as O from '@fp-ts/core/Option'
 import * as Z from '@effect/io/Effect'
+import * as Data from '@effect/data/Data'
 import { Json } from 'fp-ts/Json'
 import { ParseError } from '@fp-ts/schema/ParseResult'
 import type { NonEmptyReadonlyArray } from '@fp-ts/core/ReadonlyArray'
@@ -12,40 +13,42 @@ import type { NonEmptyReadonlyArray } from '@fp-ts/core/ReadonlyArray'
 const CONTENT_TYPE_RESPONSE_HEADER = 'content-type'
 const CONTENT_TYPE_JSON = 'application/json'
 
-class DecodingFailure {
-  readonly _tag = 'DecodingFailure'
-  constructor(readonly errors: NonEmptyReadonlyArray<ParseError>) {}
+export interface DecodingFailure extends Data.Case {
+  readonly _tag: 'DecodingFailure'
+  readonly errors: NonEmptyReadonlyArray<ParseError>
 }
+export const DecodingFailure = Data.tagged<DecodingFailure>('DecodingFailure')
 
-class GenericFetchError {
-  readonly _tag = 'GenericFetchError'
-  constructor(readonly message: string) {}
+export interface GenericFetchError extends Data.Case {
+  readonly _tag: 'GenericFetchError'
+  readonly message: string
 }
+export const GenericFetchError =
+  Data.tagged<GenericFetchError>('GenericFetchError')
 
-class HttpClientError {
-  readonly _tag = 'HttpClientError'
-  constructor(
-    readonly statusCode: number,
-    readonly data?: Record<string, unknown>,
-  ) {}
+export interface HttpClientError extends Data.Case {
+  readonly _tag: 'HttpClientError'
+  readonly statusCode: number
+  readonly originalResponse: Response
 }
+export const HttpClientError = Data.tagged<HttpClientError>('HttpClientError')
 
-class HttpServerError {
-  readonly _tag = 'HttpClientError'
-  constructor(
-    readonly statusCode: number,
-    readonly data?: Record<string, unknown>,
-  ) {}
+export interface HttpServerError extends Data.Case {
+  readonly _tag: 'HttpServerError'
+  readonly statusCode: number
 }
+export const HttpServerError = Data.tagged<HttpServerError>('HttpServerError')
 
-class NotJson {
-  readonly _tag = 'NotJson'
+export interface NotJson extends Data.Case {
+  readonly _tag: 'NotJson'
 }
+export const NotJson = Data.tagged<NotJson>('NotJson')
 
-class JsonParseError {
-  readonly _tag = 'JsonParseError'
-  constructor(readonly message: string) {}
+export interface JsonParseError extends Data.Case {
+  readonly _tag: 'JsonParseError'
+  readonly message: string
 }
+export const JsonParseError = Data.tagged<JsonParseError>('JsonParseError')
 
 export type FetchError =
   | GenericFetchError
@@ -63,7 +66,7 @@ export const fromFetch = (
     () => fetch(input, init),
     flow(
       (error) => (error instanceof Error ? error.message : 'Unknown error.'),
-      (message) => new GenericFetchError(message),
+      (message) => GenericFetchError({ message }),
     ),
   )
 
@@ -89,11 +92,12 @@ export const matchResponse = (
   match(response)
     .when(
       (response) => statusCodeIs40x(response.status),
-      (r) => Z.fail(new HttpClientError(r.status)),
+      (r) =>
+        Z.fail(HttpClientError({ statusCode: r.status, originalResponse: r })),
     )
     .when(
       (response) => statusCodeIs50x(response.status),
-      (r) => Z.fail(new HttpServerError(r.status)),
+      (r) => Z.fail(HttpServerError({ statusCode: r.status })),
     )
     .when(
       (response) => contentTypeIsJson(response.headers),
@@ -101,12 +105,13 @@ export const matchResponse = (
         Z.tryCatchPromise(
           () => r.json() as Promise<Json>,
           (error) =>
-            new JsonParseError(
-              error instanceof Error ? error.message : 'Unknown error.',
-            ),
+            JsonParseError({
+              message:
+                error instanceof Error ? error.message : 'Unknown error.',
+            }),
         ),
     )
-    .otherwise(() => Z.fail(new NotJson()))
+    .otherwise(() => Z.fail(NotJson()))
 
 export const getJsonAndValidate =
   <A>(schema: S.Schema<A>) =>
@@ -116,7 +121,7 @@ export const getJsonAndValidate =
       Z.flatMap((json) =>
         pipe(
           S.decode(schema)(json, { isUnexpectedAllowed: true }),
-          E.mapLeft((errors) => new DecodingFailure(errors)),
+          E.mapLeft((errors) => DecodingFailure({ errors })),
           Z.fromEither,
         ),
       ),
