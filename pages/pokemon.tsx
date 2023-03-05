@@ -1,12 +1,12 @@
 import * as Z from '@effect/io/Effect'
-import { pipe } from 'fp-ts/function'
-import * as S from '@fp-ts/schema'
+import * as S from '@effect/schema'
 import * as RD from '@devexperts/remote-data-ts'
 import { FetchError, fetchAndValidate } from '@utils/fetch'
 import { FrontendEnv } from '@utils/frontendEnv'
 import { useQueryRemoteData } from '@utils/useRemoteQuery'
 import { NextPage } from 'next/types'
 import { container, content, pageContainer } from './pokemon.css'
+import { pipe } from '@effect/data/Function'
 
 const PokemonResponse = S.struct({
   name: S.string,
@@ -29,7 +29,6 @@ const PokemonComponent: React.FC<PokemonComponent> = ({ imageUrl, name }) => (
     <img className={content} src={imageUrl} />
     <div className="pokemonNames">
       <p className="highlight">EN: {name}</p>
-      <p className="highlight">JP: ゲンガー</p>
     </div>
   </div>
 )
@@ -43,7 +42,7 @@ const fetchPokemon = (
 
 const Pokemon: NextPage = () => {
   const gengarQry = useQueryRemoteData(['pokemon-gengar'], () =>
-    fetchPokemon('gengar'),
+    fetchPokemon('gengr'),
   )
   const blisseyQry = useQueryRemoteData(['pokemon-blissey'], () =>
     fetchPokemon('blissey'),

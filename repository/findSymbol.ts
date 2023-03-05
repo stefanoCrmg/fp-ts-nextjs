@@ -1,12 +1,12 @@
+import { parseString as parseDate } from '@effect/schema/data/Date'
 import * as Z from '@effect/io/Effect'
-import * as O from '@fp-ts/core/Option'
+import * as O from '@effect/data/Option'
 import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
+import * as S from '@effect/schema'
+import { parseNullable as optionFromNullable } from '@effect/schema/data/Option'
 
-import * as S from '@fp-ts/schema'
-import { fromNullable as optionFromNullable } from '@fp-ts/schema/data/Option'
-import { parseDate } from '@fp-ts/schema/data/String'
 import { FrontendEnv } from '@utils/frontendEnv'
-import { flow } from '@fp-ts/core/Function'
+import { flow } from '@effect/data/Function'
 
 const Market = S.union(
   S.literal('stocks'),

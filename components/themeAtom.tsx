@@ -1,8 +1,8 @@
 import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
-import * as O from '@fp-ts/core/Option'
+import * as O from '@effect/data/Option'
 import * as Z from '@effect/io/Effect'
-import { constVoid, pipe } from '@fp-ts/core/function'
+import { constVoid, pipe } from '@effect/data/Function'
 
 type SupportedTheme = 'dark' | 'light'
 

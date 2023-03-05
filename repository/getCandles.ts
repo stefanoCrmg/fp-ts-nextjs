@@ -1,11 +1,11 @@
-import { flow, pipe } from 'fp-ts/function'
 import * as Clock from '@effect/io/Clock'
-import * as S from '@fp-ts/schema'
-import * as O from '@fp/Option'
+import * as S from '@effect/schema'
+import * as O from '@effect/data/Option'
 import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
 import * as Z from '@effect/io/Effect'
 import { FrontendEnv } from '@utils/frontendEnv'
 import * as Duration from '@effect/data/Duration'
+import { pipe, flow } from '@effect/data/Function'
 
 export const Candles = S.struct({
   closePrice: S.number,
@@ -28,7 +28,7 @@ const _getCandlesEffect = (
 ): Z.Effect<FrontendEnv, FetchError, CandlesResponse> =>
   Z.serviceWithEffect(FrontendEnv, ({ backendURL }) =>
     pipe(
-      Z.structPar({
+      Z.allPar({
         now: pipe(Clock.currentTimeMillis(), Z.map(Duration.millis)),
         before: pipe(
           Clock.currentTimeMillis(),

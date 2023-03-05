@@ -1,5 +1,5 @@
 import * as RD from '@devexperts/remote-data-ts'
-import * as O from '@fp-ts/core/Option'
+import * as O from '@effect/data/Option'
 import { match } from 'ts-pattern'
 import {
   MutationKey,
@@ -16,7 +16,7 @@ import {
 import { FetchError } from '@utils/fetch'
 import * as Z from '@effect/io/Effect'
 import { FrontendEnv, FrontendLive } from './frontendEnv'
-import { flow } from '@fp-ts/core/Function'
+import { flow } from '@effect/data/Function'
 
 export type ErrorWithStaleData<E, A> = {
   readonly error: E

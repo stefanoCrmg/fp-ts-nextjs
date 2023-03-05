@@ -1,14 +1,15 @@
+/* eslint-disable no-console */
 import { match } from 'ts-pattern'
 import * as ContentTypeHelpers from 'content-type'
-import * as E from '@fp-ts/core/Either'
-import * as S from '@fp-ts/schema'
-import { flow, pipe } from '@fp-ts/core/function'
-import * as O from '@fp-ts/core/Option'
+import * as E from '@effect/data/Either'
+import * as S from '@effect/schema'
+import { flow, pipe } from '@effect/data/Function'
+import * as O from '@effect/data/Option'
 import * as Z from '@effect/io/Effect'
 import * as Data from '@effect/data/Data'
-import { Json } from 'fp-ts/Json'
-import { ParseError } from '@fp-ts/schema/ParseResult'
-import type { NonEmptyReadonlyArray } from '@fp-ts/core/ReadonlyArray'
+import type { Json } from '@effect/schema/data/Json'
+import { ParseError } from '@effect/schema/ParseResult'
+import type { NonEmptyReadonlyArray } from '@effect/data/ReadonlyArray'
 
 const CONTENT_TYPE_RESPONSE_HEADER = 'content-type'
 const CONTENT_TYPE_JSON = 'application/json'
@@ -95,8 +96,8 @@ export const matchResponse = (
   never,
   HttpClientError | HttpServerError | JsonParseError | NotJson,
   Json
-> =>
-  match(response)
+> => {
+  return match(response)
     .when(
       (response) => statusCodeIs40x(response.status),
       (r) =>
@@ -119,12 +120,14 @@ export const matchResponse = (
         ),
     )
     .otherwise(() => Z.fail(NotJson()))
+}
 
 export const getJsonAndValidate =
   <A>(schema: S.Schema<A>) =>
   (response: Response): Z.Effect<never, FetchError, A> =>
     pipe(
       matchResponse(response),
+      Z.tapErrorCause(Z.logErrorCause),
       Z.flatMap((json) =>
         pipe(
           S.decode(schema)(json, { isUnexpectedAllowed: true }),

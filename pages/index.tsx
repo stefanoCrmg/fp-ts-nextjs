@@ -1,5 +1,5 @@
 import type { NextPage } from 'next'
-import { flow, pipe } from 'fp-ts/function'
+import { flow, pipe } from '@effect/data/Function'
 import { useDebouncedValue } from '@mantine/hooks'
 import { findTicker } from '../repository/findSymbol'
 import { getCandles } from '../repository/getCandles'
@@ -7,40 +7,37 @@ import {
   useMutationRemoteData,
   useQueryRemoteData,
 } from '@utils/useRemoteQuery'
-import * as O from '@fp/Option'
-import * as E from '@fp-ts/core/Either'
+import * as O from '@effect/data/Option'
+import * as E from '@effect/data/Either'
 import * as RD from '@devexperts/remote-data-ts'
 import * as Z from '@effect/io/Effect'
-import { useStableO } from 'fp-ts-react-stable-hooks'
-import * as str from 'fp-ts/string'
-import { NonEmptyString } from 'io-ts-types'
+import { useStableO } from '@fp/ReactStableHooks'
 import * as V from 'victory'
 import * as dateFns from 'date-fns/fp'
 import { Combobox } from '@headlessui/react'
 import { EncodingFailure, fetchAndValidate, FetchError } from '@utils/fetch'
-import * as S from '@fp-ts/schema'
+import * as S from '@effect/schema'
 import { HelloWorldTitle } from '../styles/index.css'
 import { ThemeToggle } from '../components/themeAtom'
 import { FrontendEnv } from '../utils/frontendEnv'
-
-const showOptionString = O.getShow(str.Show)
+import { isNonEmptyString, NonEmptyString } from '@fp/NonEmptyString'
 
 export const fakePostBody = S.struct({ name: S.string })
 export interface FakePostBody extends S.Infer<typeof fakePostBody> {}
 
 const Home: NextPage = () => {
-  const [stock, setStock] = useStableO<NonEmptyString>(O.none)
-  const [selectedStock, setSelectedStock] = useStableO<string>(O.none)
+  const [stock, setStock] = useStableO<NonEmptyString>(O.none())
+  const [selectedStock, setSelectedStock] = useStableO<NonEmptyString>(O.none())
   const [debouncedStockValue] = useDebouncedValue(stock, 200)
 
   const findSomeStocks = useQueryRemoteData(
-    [showOptionString.show(debouncedStockValue)],
+    [O.getOrNull(debouncedStockValue)],
     () => findTicker(debouncedStockValue),
     { enabled: O.isSome(debouncedStockValue) },
   )
 
   const findCandles = useQueryRemoteData(
-    [`${showOptionString.show(selectedStock)}-candles`],
+    [`${O.getOrNull(selectedStock)}-candles`],
     () => getCandles(selectedStock),
     { enabled: O.isSome(selectedStock) },
   )
@@ -81,17 +78,12 @@ const Home: NextPage = () => {
         ),
       )}
       <Combobox
-        value={O.toNullable(selectedStock)}
+        value={O.getOrNull(selectedStock)}
         onChange={flow(O.fromNullable, setSelectedStock)}
       >
         <Combobox.Input
           onChange={(event) =>
-            pipe(
-              event.target.value,
-              NonEmptyString.decode,
-              O.fromEither,
-              setStock,
-            )
+            pipe(event.target.value, isNonEmptyString, O.fromEither, setStock)
           }
         />
         <Combobox.Options>

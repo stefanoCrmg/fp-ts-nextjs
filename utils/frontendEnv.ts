@@ -3,7 +3,7 @@ import * as Config from '@effect/io/Config'
 import * as configProvider from '@effect/io/Config/Provider'
 import * as Layer from '@effect/io/Layer'
 import * as Effect from '@effect/io/Effect'
-import { flow, pipe } from '@fp-ts/core/function'
+import { pipe, flow } from '@effect/data/Function'
 
 export const FrontendEnv = Context.Tag<FrontendEnv>()
 export interface FrontendEnv {
@@ -26,7 +26,7 @@ const FrontendEnvMap = new Map([
 
 const MapProvider = configProvider.fromMap(FrontendEnvMap)
 
-export const FrontendEnvConfig: Config.Config<FrontendEnv> = Config.struct({
+export const FrontendEnvConfig: Config.Config<FrontendEnv> = Config.all({
   backendURL: ConfigUrl('NEXT_PUBLIC_BACKEND_URL'),
   nextEdgeFunctionURL: ConfigUrl('NEXT_PUBLIC_EDGE_FUNCTION_URL'),
 })
