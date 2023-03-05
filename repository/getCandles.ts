@@ -1,61 +1,44 @@
-import * as t from 'io-ts'
 import { flow, pipe } from 'fp-ts/function'
-import * as RTE from '@fp/ReaderTaskEither'
-import * as TE from '@fp/TaskEither'
-import * as IO from '@fp/IO'
+import * as Clock from '@effect/io/Clock'
+import * as S from '@fp-ts/schema'
 import * as O from '@fp/Option'
 import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
-import * as stdD from 'fp-ts-std/Date'
-import { NonEmptyString } from 'io-ts-types'
+import * as Z from '@effect/io/Effect'
 import { FrontendEnv } from '@utils/frontendEnv'
-import * as dateFns from 'date-fns/fp'
+import * as Duration from '@effect/data/Duration'
 
-export const Candles = t.readonly(
-  t.type({
-    closePrice: t.number,
-    highPrice: t.number,
-    lowPrice: t.number,
-    openPrice: t.number,
-    volume: t.number,
-  }),
-  'Candles',
-)
-export interface Candles extends t.TypeOf<typeof Candles> {}
+export const Candles = S.struct({
+  closePrice: S.number,
+  highPrice: S.number,
+  lowPrice: S.number,
+  openPrice: S.number,
+  volume: S.number,
+})
+export interface Candles extends S.Infer<typeof Candles> {}
 
-export const CandlesResponse = t.readonly(
-  t.type({
-    results: t.readonlyArray(Candles),
-    tickerName: NonEmptyString,
-  }),
-)
-export interface CandlesResponse extends t.TypeOf<typeof CandlesResponse> {}
+export const CandlesResponse = S.struct({
+  results: S.array(Candles),
+  tickerName: S.string,
+})
 
-const _getCandlesTask = (
+export interface CandlesResponse extends S.Infer<typeof CandlesResponse> {}
+
+const _getCandlesEffect = (
   symbol: string,
-): RTE.ReaderTaskEither<FrontendEnv, FetchError, CandlesResponse> =>
-  RTE.asksTaskEither(({ backendURL }) =>
+): Z.Effect<FrontendEnv, FetchError, CandlesResponse> =>
+  Z.serviceWithEffect(FrontendEnv, ({ backendURL }) =>
     pipe(
-      IO.Do,
-      IO.apS('now', pipe(stdD.now, IO.map(stdD.unMilliseconds))),
-      IO.apS(
-        'before',
-        pipe(
-          stdD.now,
-          IO.map(
-            flow(
-              stdD.fromMilliseconds,
-              dateFns.subDays(14),
-              stdD.getTime,
-              stdD.unMilliseconds,
-            ),
-          ),
+      Z.structPar({
+        now: pipe(Clock.currentTimeMillis(), Z.map(Duration.millis)),
+        before: pipe(
+          Clock.currentTimeMillis(),
+          Z.map(flow(Duration.millis, Duration.subtract(Duration.days(14)))),
         ),
-      ),
-      TE.fromIO,
-      TE.chain(({ now, before }) =>
+      }),
+      Z.flatMap(({ now, before }) =>
         fetchAndValidate(
           CandlesResponse,
-          `${backendURL}/candle?symbol=${symbol}&timeframe=day&from=${before}&to=${now}`,
+          `${backendURL}/candle?symbol=${symbol}&timeframe=day&from=${before.millis}&to=${now.millis}`,
         ),
       ),
     ),
@@ -63,9 +46,8 @@ const _getCandlesTask = (
 
 export const getCandles: (
   stockValue: O.Option<string>,
-) => RTE.ReaderTaskEither<FrontendEnv, FetchError, CandlesResponse> = flow(
-  RTE.fromOption(() =>
-    GenericFetchError({ message: 'Missing stock identifier' }),
-  ),
-  RTE.chain(_getCandlesTask),
+) => Z.Effect<FrontendEnv, FetchError, CandlesResponse> = flow(
+  Z.fromOption,
+  Z.mapError(() => GenericFetchError({ message: 'Missing stock identifier' })),
+  Z.flatMap(_getCandlesEffect),
 )

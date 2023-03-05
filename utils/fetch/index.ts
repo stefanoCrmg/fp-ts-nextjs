@@ -19,6 +19,12 @@ export interface DecodingFailure extends Data.Case {
 }
 export const DecodingFailure = Data.tagged<DecodingFailure>('DecodingFailure')
 
+export interface EncodingFailure extends Data.Case {
+  readonly _tag: 'EncodingFailure'
+  readonly errors: NonEmptyReadonlyArray<ParseError>
+}
+export const EncodingFailure = Data.tagged<EncodingFailure>('EncodingFailure')
+
 export interface GenericFetchError extends Data.Case {
   readonly _tag: 'GenericFetchError'
   readonly message: string
@@ -53,6 +59,7 @@ export const JsonParseError = Data.tagged<JsonParseError>('JsonParseError')
 export type FetchError =
   | GenericFetchError
   | DecodingFailure
+  | EncodingFailure
   | HttpClientError
   | HttpServerError
   | NotJson

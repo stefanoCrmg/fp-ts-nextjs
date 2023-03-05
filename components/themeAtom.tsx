@@ -3,7 +3,6 @@ import { atomWithStorage } from 'jotai/utils'
 import * as O from '@fp-ts/core/Option'
 import * as Z from '@effect/io/Effect'
 import { constVoid, pipe } from '@fp-ts/core/function'
-import { useEffect } from 'react'
 
 type SupportedTheme = 'dark' | 'light'
 
@@ -36,7 +35,7 @@ const updateDOMDataTheme = (
 const themeAtom = atomWithStorage<SupportedTheme>('themePreference', 'light')
 
 /*
- * TODO: a useEffect on theme would guarantee having different tab in-sync with theme change.
+ * TODO: a useEffect on theme would guarantee having different tab in-sync with theme change, but it will force at least one repaint?
  * maybe rewrite atomWithStorage to extend its eventListener on storage with a DOM update?
  * https://github.com/pmndrs/jotai/blob/main/src/utils/atomWithStorage.ts#L83
  *
@@ -52,22 +51,28 @@ const themeAtom = atomWithStorage<SupportedTheme>('themePreference', 'light')
  *    ),
  * )
  */
+
 export const useTheme = () => {
   const [theme, setTheme] = useAtom(themeAtom)
+  const wrapSetTheme = (theme: SupportedTheme) =>
+    pipe(
+      updateDOMDataTheme(theme),
+      Z.zipPar(Z.sync(() => setTheme(theme))),
+      Z.runSync,
+    )
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    Z.runSync(updateDOMDataTheme(theme))
-  }, [theme])
-
-  return [theme, setTheme] as const
+  return [theme, wrapSetTheme] as const
 }
 
 export const ThemeToggle: React.FC = () => {
   const [theme, setTheme] = useTheme()
 
   return (
-    <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+    <button
+      onClick={() => {
+        setTheme(theme === 'dark' ? 'light' : 'dark')
+      }}
+    >
       Change theme
     </button>
   )

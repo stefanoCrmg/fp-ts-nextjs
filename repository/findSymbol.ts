@@ -1,63 +1,58 @@
-import * as t from 'io-ts'
-import { flow } from 'fp-ts/function'
-import * as RTE from '@fp/ReaderTaskEither'
-import * as O from '@fp/Option'
+import * as Z from '@effect/io/Effect'
+import * as O from '@fp-ts/core/Option'
 import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
-import {
-  DateFromISOString,
-  NonEmptyString,
-  optionFromNullable,
-} from 'io-ts-types'
-import { FrontendEnv } from '@utils/frontendEnv'
 
-const Market = t.keyof({
-  stocks: null,
-  otc: null,
-  crypto: null,
-  fx: null,
+import * as S from '@fp-ts/schema'
+import { fromNullable as optionFromNullable } from '@fp-ts/schema/data/Option'
+import { parseDate } from '@fp-ts/schema/data/String'
+import { FrontendEnv } from '@utils/frontendEnv'
+import { flow } from '@fp-ts/core/Function'
+
+const Market = S.union(
+  S.literal('stocks'),
+  S.literal('otc'),
+  S.literal('crypto'),
+  S.literal('fx'),
+)
+
+const Ticker = S.struct({
+  active: S.boolean,
+  cik: optionFromNullable(S.string),
+  composite_figi: optionFromNullable(S.string),
+  currency_name: S.string,
+  last_updated_utc: parseDate(S.string),
+  locale: S.string,
+  market: Market,
+  name: S.string,
+  primary_exchange: optionFromNullable(S.string),
+  share_class_figi: optionFromNullable(S.string),
+  ticker: S.string,
+  type: S.string,
 })
 
-const Ticker = t.readonly(
-  t.type({
-    active: t.boolean,
-    cik: optionFromNullable(NonEmptyString),
-    composite_figi: optionFromNullable(NonEmptyString),
-    currency_name: NonEmptyString,
-    last_updated_utc: DateFromISOString,
-    locale: NonEmptyString,
-    market: Market,
-    name: NonEmptyString,
-    primary_exchange: optionFromNullable(NonEmptyString),
-    share_class_figi: optionFromNullable(NonEmptyString),
-    ticker: NonEmptyString,
-    type: NonEmptyString,
-  }),
-)
-export interface Ticker extends t.TypeOf<typeof Ticker> {}
+export interface Ticker extends S.Infer<typeof Ticker> {}
 
-const TickerResponse = t.readonly(
-  t.type({
-    count: t.number,
-    next_url: optionFromNullable(NonEmptyString),
-    request_id: NonEmptyString,
-    results: t.readonlyArray(Ticker),
-    status: NonEmptyString,
-  }),
-)
-export interface TickerResponse extends t.TypeOf<typeof TickerResponse> {}
+const TickerResponse = S.struct({
+  count: S.number,
+  next_url: optionFromNullable(S.string),
+  request_id: S.string,
+  results: S.array(Ticker),
+  status: S.string,
+})
 
-const _findTickerTask = (
-  symbol: NonEmptyString,
-): RTE.ReaderTaskEither<FrontendEnv, FetchError, TickerResponse> =>
-  RTE.asksTaskEither(({ backendURL }) =>
+export interface TickerResponse extends S.Infer<typeof TickerResponse> {}
+
+const _findTickerEffect = (
+  symbol: string,
+): Z.Effect<FrontendEnv, FetchError, TickerResponse> =>
+  Z.serviceWithEffect(FrontendEnv, ({ backendURL }) =>
     fetchAndValidate(TickerResponse, `${backendURL}/ticker?search=${symbol}`),
   )
 
 export const findTicker: (
-  stockValue: O.Option<NonEmptyString>,
-) => RTE.ReaderTaskEither<FrontendEnv, FetchError, TickerResponse> = flow(
-  RTE.fromOption(() =>
-    GenericFetchError({ message: 'Missing stock identifier' }),
-  ),
-  RTE.chain(_findTickerTask),
+  stockValue: O.Option<string>,
+) => Z.Effect<FrontendEnv, FetchError, TickerResponse> = flow(
+  Z.fromOption,
+  Z.mapError(() => GenericFetchError({ message: 'Missing stock identifier' })),
+  Z.flatMap(_findTickerEffect),
 )

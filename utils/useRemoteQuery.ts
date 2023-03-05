@@ -1,5 +1,5 @@
 import * as RD from '@devexperts/remote-data-ts'
-import * as O from 'fp-ts/Option'
+import * as O from '@fp-ts/core/Option'
 import { match } from 'ts-pattern'
 import {
   MutationKey,
@@ -15,53 +15,14 @@ import {
 } from '@tanstack/react-query'
 import { FetchError } from '@utils/fetch'
 import * as Z from '@effect/io/Effect'
-import {
-  FrontendEnv,
-  FrontendService,
-  envSource,
-  FrontendConfig,
-  frontEndSource,
-  FrontendLive,
-} from './frontendEnv'
-import { pipe } from 'fp-ts/function'
+import { FrontendEnv, FrontendLive } from './frontendEnv'
+import { flow } from '@fp-ts/core/Function'
 
 export type ErrorWithStaleData<E, A> = {
   readonly error: E
   readonly staleData: O.Option<A>
   readonly refetch: (options?: RefetchOptions & RefetchQueryFilters<A>) => void
 }
-
-const wtf = pipe(
-  envSource.load(FrontendConfig),
-  Z.tapBoth(
-    (err) => Z.logError(JSON.stringify(err)),
-    (_) => Z.log(JSON.stringify(_)),
-  ),
-)
-const unwrapQueryFn =
-  <T, E, Key extends QueryKey = QueryKey>(
-    _service: FrontendEnv,
-    queryFn: (
-      context: QueryFunctionContext<Key>,
-    ) => Z.Effect<FrontendEnv, E, T>,
-  ) =>
-  (context: QueryFunctionContext<Key>): Promise<T> => {
-    console.log('Hey env: ', process.env.NEXT_PUBLIC_BACKEND_URL)
-    return pipe(
-      queryFn(context),
-      Z.provideSomeLayer(FrontendLive),
-      Z.runPromise,
-    )
-  }
-
-const unwrapMutationFn =
-  <A, E, MutationVariables = void>(
-    service: FrontendEnv,
-    mutationFn: (mv: MutationVariables) => Z.Effect<FrontendEnv, E, A>,
-  ) =>
-  (mv: MutationVariables): Promise<A> =>
-    pipe(mutationFn(mv), Z.provideService(FrontendEnv, service), Z.runPromise)
-
 export const useQueryRemoteData = <
   QueryFnData,
   E,
@@ -74,7 +35,7 @@ export const useQueryRemoteData = <
   ) => Z.Effect<FrontendEnv, E, QueryFnData>,
   options?: UseQueryOptions<QueryFnData, E, A, Key>,
 ): RD.RemoteData<ErrorWithStaleData<E, A>, A> => {
-  const _queryFn = unwrapQueryFn(FrontendService, queryFn)
+  const _queryFn = flow(queryFn, Z.provideSomeLayer(FrontendLive), Z.runPromise)
   const query = useQuery(queryKey, _queryFn, options)
 
   return match(query)
@@ -107,7 +68,11 @@ export const useMutationRemoteData = <
     TContext
   >,
 ): UseMutationRemoteDataResult<A, FetchError, MutationVariables, TContext> => {
-  const _mutationFn = unwrapMutationFn(FrontendService, mutationFn)
+  const _mutationFn = flow(
+    mutationFn,
+    Z.provideSomeLayer(FrontendLive),
+    Z.runPromise,
+  )
   const mutation = useMutation(mutationKey, _mutationFn, mutationOptions)
 
   const lifeCycle: RD.RemoteData<FetchError, A> = match(mutation)

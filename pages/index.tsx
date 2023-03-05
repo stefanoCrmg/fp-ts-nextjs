@@ -8,25 +8,25 @@ import {
   useQueryRemoteData,
 } from '@utils/useRemoteQuery'
 import * as O from '@fp/Option'
+import * as E from '@fp-ts/core/Either'
 import * as RD from '@devexperts/remote-data-ts'
+import * as Z from '@effect/io/Effect'
 import { useStableO } from 'fp-ts-react-stable-hooks'
 import * as str from 'fp-ts/string'
 import { NonEmptyString } from 'io-ts-types'
 import * as V from 'victory'
 import * as dateFns from 'date-fns/fp'
 import { Combobox } from '@headlessui/react'
-import { fetchAndValidate, FetchError } from '@utils/fetch'
-import * as t from 'io-ts'
-import * as RTE from '@fp/ReaderTaskEither'
-import { serialize } from '@unsplash/sum-types'
+import { EncodingFailure, fetchAndValidate, FetchError } from '@utils/fetch'
+import * as S from '@fp-ts/schema'
 import { HelloWorldTitle } from '../styles/index.css'
 import { ThemeToggle } from '../components/themeAtom'
 import { FrontendEnv } from '../utils/frontendEnv'
 
 const showOptionString = O.getShow(str.Show)
 
-export const fakePostBody = t.type({ name: t.string }, 'FakePostBody')
-export interface FakePostBody extends t.TypeOf<typeof fakePostBody> {}
+export const fakePostBody = S.struct({ name: S.string })
+export interface FakePostBody extends S.Infer<typeof fakePostBody> {}
 
 const Home: NextPage = () => {
   const [stock, setStock] = useStableO<NonEmptyString>(O.none)
@@ -47,13 +47,19 @@ const Home: NextPage = () => {
 
   const fakePostTask = (
     body: FakePostBody,
-  ): RTE.ReaderTaskEither<FrontendEnv, FetchError, { name: string }> =>
-    RTE.asksTaskEither(({ nextEdgeFunctionURL }) =>
+  ): Z.Effect<FrontendEnv, FetchError, { name: string }> =>
+    Z.serviceWithEffect(FrontendEnv, ({ nextEdgeFunctionURL }) =>
       pipe(
-        fetchAndValidate(fakePostBody, `${nextEdgeFunctionURL}/hello`, {
-          method: 'POST',
-          body: JSON.stringify(fakePostBody.encode(body)),
-        }),
+        body,
+        S.encode(fakePostBody),
+        E.mapLeft((errors) => EncodingFailure({ errors })),
+        Z.fromEither,
+        Z.flatMap((body) =>
+          fetchAndValidate(fakePostBody, `${nextEdgeFunctionURL}/hello`, {
+            method: 'POST',
+            body: JSON.stringify(body),
+          }),
+        ),
       ),
     )
 
@@ -70,9 +76,7 @@ const Home: NextPage = () => {
         RD.fold(
           () => <div>Idle</div>,
           () => <div>Loading</div>,
-          (fetchErr) => (
-            <div>{JSON.stringify(serialize<FetchError>(fetchErr))}</div>
-          ),
+          (fetchErr) => <div>{JSON.stringify(fetchErr)}</div>,
           ({ name }) => <div>{name}</div>,
         ),
       )}
