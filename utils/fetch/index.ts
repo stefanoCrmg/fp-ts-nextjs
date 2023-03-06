@@ -100,8 +100,11 @@ export const matchResponse = (
   return match(response)
     .when(
       (response) => statusCodeIs40x(response.status),
-      (r) =>
-        Z.fail(HttpClientError({ statusCode: r.status, originalResponse: r })),
+      (r) => {
+        return Z.fail(
+          HttpClientError({ statusCode: r.status, originalResponse: r }),
+        )
+      },
     )
     .when(
       (response) => statusCodeIs50x(response.status),

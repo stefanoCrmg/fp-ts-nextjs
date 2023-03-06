@@ -36,8 +36,10 @@ const PokemonComponent: React.FC<PokemonComponent> = ({ imageUrl, name }) => (
 const fetchPokemon = (
   pokemonName: string,
 ): Z.Effect<FrontendEnv, FetchError, PokemonResponse> =>
-  Z.serviceWithEffect(FrontendEnv, ({ backendURL }) =>
-    fetchAndValidate(PokemonResponse, `${backendURL}/pokemon/${pokemonName}`),
+  pipe(
+    Z.serviceWithEffect(FrontendEnv, ({ backendURL }) =>
+      fetchAndValidate(PokemonResponse, `${backendURL}/pokemon/${pokemonName}`),
+    ),
   )
 
 const Pokemon: NextPage = () => {

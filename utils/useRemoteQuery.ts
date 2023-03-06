@@ -1,5 +1,6 @@
 import * as RD from '@devexperts/remote-data-ts'
 import * as O from '@effect/data/Option'
+import * as E from '@effect/data/Either'
 import { match } from 'ts-pattern'
 import {
   MutationKey,
@@ -16,7 +17,7 @@ import {
 import { FetchError } from '@utils/fetch'
 import * as Z from '@effect/io/Effect'
 import { FrontendEnv, FrontendLive } from './frontendEnv'
-import { flow } from '@effect/data/Function'
+import { flow, identity } from '@effect/data/Function'
 
 export type ErrorWithStaleData<E, A> = {
   readonly error: E
@@ -35,7 +36,13 @@ export const useQueryRemoteData = <
   ) => Z.Effect<FrontendEnv, E, QueryFnData>,
   options?: UseQueryOptions<QueryFnData, E, A, Key>,
 ): RD.RemoteData<ErrorWithStaleData<E, A>, A> => {
-  const _queryFn = flow(queryFn, Z.provideSomeLayer(FrontendLive), Z.runPromise)
+  const _queryFn = flow(
+    queryFn,
+    Z.provideSomeLayer(FrontendLive),
+    Z.runPromiseEither,
+    (_) => _.then(E.getOrThrowWith(identity)),
+  )
+
   const query = useQuery(queryKey, _queryFn, options)
 
   return match(query)
