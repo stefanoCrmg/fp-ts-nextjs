@@ -1,6 +1,5 @@
 import * as RD from '@devexperts/remote-data-ts'
 import * as O from '@effect/data/Option'
-import * as E from '@effect/data/Either'
 import { match } from 'ts-pattern'
 import {
   MutationKey,
@@ -17,7 +16,16 @@ import {
 import { FetchError } from '@utils/fetch'
 import * as Z from '@effect/io/Effect'
 import { FrontendEnv, FrontendLive } from './frontendEnv'
-import { flow, identity } from '@effect/data/Function'
+import { flow, pipe, identity } from '@effect/data/Function'
+import * as Ex from '@effect/io/Exit'
+import * as Cause from '@effect/io/Cause'
+
+const ExUnsafeGetOrThrow: <E, A>(self: Ex.Exit<E, A>) => A = Ex.match(
+  (cause) => {
+    throw Cause.squash(cause)
+  },
+  identity,
+)
 
 export type ErrorWithStaleData<E, A> = {
   readonly error: E
@@ -33,14 +41,14 @@ export const useQueryRemoteData = <
   queryKey: Key,
   queryFn: (
     context: QueryFunctionContext<Key>,
-  ) => Z.Effect<FrontendEnv, E, QueryFnData>,
-  options?: UseQueryOptions<QueryFnData, E, A, Key>,
-): RD.RemoteData<ErrorWithStaleData<E, A>, A> => {
+  ) => Z.Effect<FrontendEnv, E | FetchError, QueryFnData>,
+  options?: UseQueryOptions<QueryFnData, E | FetchError, A, Key>,
+): RD.RemoteData<ErrorWithStaleData<E | FetchError, A>, A> => {
   const _queryFn = flow(
     queryFn,
     Z.provideSomeLayer(FrontendLive),
-    Z.runPromiseEither,
-    (_) => _.then(E.getOrThrowWith(identity)),
+    Z.runPromiseExit,
+    (_) => _.then((exit) => pipe(exit, Ex.unannotate, ExUnsafeGetOrThrow)),
   )
 
   const query = useQuery(queryKey, _queryFn, options)

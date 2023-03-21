@@ -24,6 +24,7 @@
     "forceConsistentCasingInFileNames": true,
     "noErrorTruncation": true,
     "noEmit": true,
+    "downlevelIteration": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "node",

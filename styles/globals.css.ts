@@ -1,5 +1,6 @@
 import { globalStyle } from '@vanilla-extract/css'
 import { vars } from 'styles/theme.css'
+export * from './grid.css'
 
 globalStyle('html, body', {
   height: '100%',

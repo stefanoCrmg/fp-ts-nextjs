@@ -9,10 +9,7 @@ const nextConfig = {
   images: {
     domains: ['raw.githubusercontent.com'],
   },
-  // experimental: {
-  // appDir: true,
-  // serverComponentsExternalPackages: ["@effect/io"],
-  // },
+  // pageExtensions: ['style.css.ts'],
 }
 
 module.exports = withVanillaExtract(nextConfig)
