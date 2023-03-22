@@ -9,7 +9,7 @@ const nextConfig = {
   images: {
     domains: ['raw.githubusercontent.com'],
   },
-  // pageExtensions: ['style.css.ts'],
+  pageExtensions: ['tsx', 'style.css.ts'],
 }
 
 module.exports = withVanillaExtract(nextConfig)

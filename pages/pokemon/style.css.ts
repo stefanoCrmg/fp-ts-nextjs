@@ -44,6 +44,6 @@ export const overlayGridContainer = style({
 
 export const overlayGridItem = style([
   { height: '100vh', opacity: '0.2' },
-  sprinkles({ backgroundColor: 'green-4' }),
+  sprinkles({ backgroundColor: 'violet-5' }),
 ])
 export const showGrid = style([gridContainerDelimiter, gridContainer])
