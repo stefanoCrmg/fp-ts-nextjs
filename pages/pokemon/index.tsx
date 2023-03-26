@@ -11,6 +11,7 @@ import {
   gridElement,
   overlayGridContainer,
   overlayGridItem,
+  pokemonName,
   showGrid,
 } from './style.css'
 import { pipe } from '@effect/data/Function'
@@ -34,7 +35,7 @@ type PokemonComponent = {
 const PokemonComponent: React.FC<PokemonComponent> = ({ imageUrl, name }) => (
   <div className={gridElement}>
     <img src={imageUrl} />
-    <div className="pokemonNames">
+    <div className={pokemonName}>
       <p className="highlight">EN: {name}</p>
     </div>
   </div>
@@ -80,7 +81,7 @@ const Pokemon: NextPage = () => {
 
   return (
     <>
-      <Showgrid />
+      {/* <Showgrid /> */}
       <div className={gridContainerDelimiter}>
         <div className={gridContainer}>
           {pipe(

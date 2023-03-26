@@ -1,5 +1,5 @@
 import { style } from '@vanilla-extract/css'
-import { gridColumnsVar, gridGutterVar, gridMaxWidthVar } from 'styles/grid.css'
+import * as GRID from 'styles/grid.css'
 import { sprinkles } from 'styles/sprinkles.css'
 
 export const pageContainer = style({
@@ -18,15 +18,15 @@ export const content = style({
 })
 
 export const gridContainerDelimiter = style({
-  maxWidth: gridMaxWidthVar,
-  paddingInline: gridGutterVar,
+  maxWidth: GRID.maxGridWidth,
+  paddingInline: GRID.gutter,
   marginInline: 'auto',
 })
 
 export const gridContainer = style({
   display: 'grid',
-  gridTemplateColumns: `repeat(${gridColumnsVar}, 1fr)`,
-  gap: gridGutterVar,
+  gridTemplateColumns: `repeat(${GRID.columns}, 1fr)`,
+  gap: GRID.gutter,
 })
 
 export const gridElement = style({
@@ -47,3 +47,10 @@ export const overlayGridItem = style([
   sprinkles({ backgroundColor: 'violet-5' }),
 ])
 export const showGrid = style([gridContainerDelimiter, gridContainer])
+
+export const pokemonName = sprinkles({
+  fontSize: 'size0',
+  color: 'blue-6',
+  fontWeight: '600',
+  marginTop: 'fluidL_XL',
+})

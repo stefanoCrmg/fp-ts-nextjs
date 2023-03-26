@@ -1,12 +1,12 @@
 import { colors } from './colors'
-import { space } from './space'
+import { space } from './space.css'
 import {
   fontSizes,
   fontWeights,
   fonts,
   letterSpacings,
   lineHeights,
-} from './typography'
+} from './typography.css'
 
 export const tokens = {
   colors,
