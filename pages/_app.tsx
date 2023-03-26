@@ -1,11 +1,14 @@
 import 'modern-normalize'
 import '../styles/globals.css'
+import { Inter } from 'next/font/google'
 
 import { AppProps } from 'next/app'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import React from 'react'
 import Head from 'next/head'
+
+const inter = Inter({ subsets: ['latin'] })
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -26,7 +29,9 @@ export default function App(props: AppProps) {
         />
       </Head>
       <QueryClientProvider client={queryClient}>
-        <Component {...pageProps} />
+        <main className={inter.className}>
+          <Component {...pageProps} />
+        </main>
         <ReactQueryDevtools initialIsOpen />
       </QueryClientProvider>
     </>

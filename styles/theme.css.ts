@@ -1,17 +1,11 @@
-import { Tokens } from './tokens/index'
 import {
   createGlobalTheme,
   createGlobalThemeContract,
 } from '@vanilla-extract/css'
-import { tokens } from './tokens'
+import { colors } from './tokens/colors'
 
 export const getVarName = (_value: string | null, path: string[]) =>
   path.join('-').replace('.', '_').replace('/', '__')
-
-const { colors, ...restTokens } = tokens
-const basicTokens: Omit<Tokens, 'colors'> = restTokens
-const globalThemeContract = createGlobalThemeContract(basicTokens, getVarName)
-createGlobalTheme(':root', globalThemeContract, restTokens)
 
 const makeColorScheme = (mode: 'light' | 'dark') => ({
   palette: {
@@ -36,5 +30,4 @@ createGlobalTheme(
   makeColorScheme('dark'),
 )
 
-export type ThemeVars = typeof globalThemeContract & typeof baseColorContract
-export const vars: ThemeVars = { ...globalThemeContract, ...baseColorContract }
+export const vars = { ...baseColorContract }

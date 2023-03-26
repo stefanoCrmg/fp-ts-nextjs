@@ -51,6 +51,6 @@ export const showGrid = style([gridContainerDelimiter, gridContainer])
 export const pokemonName = sprinkles({
   fontSize: 'size0',
   color: 'blue-6',
-  fontWeight: '600',
+  fontWeight: '500',
   marginTop: 'fluidL_XL',
 })

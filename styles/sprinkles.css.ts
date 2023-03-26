@@ -15,15 +15,8 @@ const responsiveProperties = defineProperties({
   },
   defaultCondition: 'xs',
   properties: {
-    fontSize: {
-      size0: TYPOGRAPHY.size0,
-      size1: TYPOGRAPHY.size1,
-      size2: TYPOGRAPHY.size2,
-      size3: TYPOGRAPHY.size3,
-      size4: TYPOGRAPHY.size4,
-      size5: TYPOGRAPHY.size5,
-    },
-    fontWeight: vars.fontWeights,
+    fontSize: TYPOGRAPHY.sizeMap,
+    fontWeight: TYPOGRAPHY.weightMap,
     marginBottom: SPACES.map,
     marginLeft: SPACES.map,
     marginRight: SPACES.map,

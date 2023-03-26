@@ -1,8 +1,4 @@
 import { createVar } from '@vanilla-extract/css'
-// export const fonts = {
-//   mono: `Dank Mono, Operator Mono, Inconsolata, Fira Mono, ui-monospace, SF Mono, Monaco, Droid Sans Mono, Source Code Pro, monospace`,
-//   sans: `system-ui`,
-// }
 
 export const size0 = createVar()
 export const size1 = createVar()
@@ -20,14 +16,15 @@ export const globalVars = {
   [size5]: 'clamp(2.80rem, calc(2.60rem + 1.02vw), 3.82rem)',
 }
 
-export const fontWeights = {
-  '100': '100',
-  '200': '200',
-  '300': '300',
-  '400': '400',
-  '500': '500',
-  '600': '600',
-  '700': '700',
-  '800': '800',
-  '900': '900',
+export const sizeMap = { size0, size1, size2, size3, size4, size5 }
+export const weightMap = {
+  '100': 100,
+  '200': 200,
+  '300': 300,
+  '400': 400,
+  '500': 500,
+  '600': 600,
+  '700': 700,
+  '800': 800,
+  '900': 900,
 }
