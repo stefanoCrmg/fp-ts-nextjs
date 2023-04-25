@@ -8,22 +8,21 @@ import {
   useQueryRemoteData,
 } from '@utils/useRemoteQuery'
 import * as O from '@effect/data/Option'
-import * as E from '@effect/data/Either'
 import * as RD from '@devexperts/remote-data-ts'
 import * as Z from '@effect/io/Effect'
+import * as S from '@effect/schema/Schema'
 import { useStableO } from '@fp/ReactStableHooks'
 import * as V from 'victory'
 import * as dateFns from 'date-fns/fp'
 import { Combobox } from '@headlessui/react'
 import { EncodingFailure, fetchAndValidate, FetchError } from '@utils/fetch'
-import * as S from '@effect/schema'
-import { HelloWorldTitle } from '../styles/index.css'
 import { ThemeToggle } from '../components/themeAtom'
 import { FrontendEnv } from '../utils/frontendEnv'
 import { isNonEmptyString, NonEmptyString } from '@fp/NonEmptyString'
+import { sprinkles } from 'styles/sprinkles.css'
 
 export const fakePostBody = S.struct({ name: S.string })
-export interface FakePostBody extends S.Infer<typeof fakePostBody> {}
+export interface FakePostBody extends S.To<typeof fakePostBody> {}
 
 const Home: NextPage = () => {
   const [stock, setStock] = useStableO<NonEmptyString>(O.none())
@@ -42,20 +41,22 @@ const Home: NextPage = () => {
     { enabled: O.isSome(selectedStock) },
   )
 
-  const fakePostTask = (
+  const fakePostTask: (
     body: FakePostBody,
-  ): Z.Effect<FrontendEnv, FetchError, { name: string }> =>
-    Z.serviceWithEffect(FrontendEnv, ({ nextEdgeFunctionURL }) =>
-      pipe(
-        body,
-        S.encode(fakePostBody),
-        E.mapLeft((errors) => EncodingFailure({ errors })),
-        Z.fromEither,
-        Z.flatMap((body) =>
-          fetchAndValidate(fakePostBody, `${nextEdgeFunctionURL}/hello`, {
-            method: 'POST',
-            body: JSON.stringify(body),
-          }),
+  ) => Z.Effect<FrontendEnv, FetchError, FakePostBody> = (body: FakePostBody) =>
+    pipe(
+      FrontendEnv,
+      Z.flatMap(({ nextEdgeFunctionURL }) =>
+        pipe(
+          body,
+          S.encodeEffect(fakePostBody),
+          Z.mapError((errors) => EncodingFailure({ errors: [errors] })),
+          Z.flatMap((body) =>
+            fetchAndValidate(fakePostBody, `${nextEdgeFunctionURL}/hello`, {
+              method: 'POST',
+              body: JSON.stringify(body),
+            }),
+          ),
         ),
       ),
     )
@@ -63,7 +64,9 @@ const Home: NextPage = () => {
   const mutation = useMutationRemoteData(['first-mutation'], fakePostTask)
   return (
     <div>
-      <h1 className={HelloWorldTitle}>Hello world!</h1>
+      <h1 className={sprinkles({ fontSize: 'size2', color: 'green-5' })}>
+        Hello world!
+      </h1>
       <ThemeToggle />
       <button onClick={() => mutation.mutate({ name: 'MioBody' })}>
         Post me

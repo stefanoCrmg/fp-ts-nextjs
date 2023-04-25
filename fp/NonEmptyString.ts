@@ -1,16 +1,17 @@
 import { Brand } from '@effect/data/Brand'
 import { pipe } from '@effect/data/Function'
-import * as S from '@effect/schema'
+import * as S from '@effect/schema/Schema'
+import * as E from '@effect/data/Either'
 import { ParseOptions } from '@effect/schema/AST'
-import { ParseResult } from '@effect/schema/ParseResult'
+import { ParseError } from '@effect/schema/ParseResult'
 
 const _internal_nonEmptyStringS: S.Schema<string> = S.nonEmpty()(S.string)
-export const NonEmptyString: S.Schema<string & Brand<'NonEmptyString'>> = pipe(
-  _internal_nonEmptyStringS,
-  S.brand('NonEmptyString'),
-)
-export type NonEmptyString = S.Infer<typeof NonEmptyString>
+export const NonEmptyString: S.Schema<
+  string,
+  string & Brand<'NonEmptyString'>
+> = pipe(_internal_nonEmptyStringS, S.brand('NonEmptyString'))
+export type NonEmptyString = S.To<typeof NonEmptyString>
 export const isNonEmptyString: (
   input: unknown,
   options?: ParseOptions | undefined,
-) => ParseResult<string & Brand<'NonEmptyString'>> = S.decode(NonEmptyString)
+) => E.Either<ParseError, NonEmptyString> = S.parseEither(NonEmptyString)

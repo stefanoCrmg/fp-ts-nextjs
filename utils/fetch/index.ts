@@ -1,13 +1,12 @@
 /* eslint-disable no-console */
 import { match } from 'ts-pattern'
 import * as ContentTypeHelpers from 'content-type'
-import * as E from '@effect/data/Either'
-import * as S from '@effect/schema'
+import * as S from '@effect/schema/Schema'
 import { flow, pipe } from '@effect/data/Function'
 import * as O from '@effect/data/Option'
 import * as Z from '@effect/io/Effect'
 import * as Data from '@effect/data/Data'
-import type { Json } from '@effect/schema/data/Json'
+import type { Json } from '@effect/schema/Schema'
 import { ParseError } from '@effect/schema/ParseResult'
 import type { NonEmptyReadonlyArray } from '@effect/data/ReadonlyArray'
 
@@ -126,22 +125,21 @@ export const matchResponse = (
 }
 
 export const getJsonAndValidate =
-  <A>(schema: S.Schema<A>) =>
+  <I, A>(schema: S.Schema<I, A>) =>
   (response: Response): Z.Effect<never, FetchError, A> =>
     pipe(
       matchResponse(response),
-      Z.tapErrorCause(Z.logErrorCause),
+      // Z.tapErrorCause(Z.logErrorCause),
       Z.flatMap((json) =>
         pipe(
-          S.decode(schema)(json, { isUnexpectedAllowed: true }),
-          E.mapLeft((errors) => DecodingFailure({ errors })),
-          Z.fromEither,
+          S.parseEffect(schema)(json, { onExcessProperty: 'ignore' }),
+          Z.mapError((errors) => DecodingFailure({ errors: [errors] })),
         ),
       ),
     )
 
-export const fetchAndValidate = <A>(
-  schema: S.Schema<A>,
+export const fetchAndValidate = <I, A>(
+  schema: S.Schema<I, A>,
   input: RequestInfo | URL,
   init?: RequestInit | undefined,
 ): Z.Effect<never, FetchError, A> =>

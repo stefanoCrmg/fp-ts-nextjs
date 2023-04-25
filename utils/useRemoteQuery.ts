@@ -1,5 +1,6 @@
 import * as RD from '@devexperts/remote-data-ts'
 import * as O from '@effect/data/Option'
+import * as Data from '@effect/data/Data'
 import { match } from 'ts-pattern'
 import {
   MutationKey,
@@ -16,15 +17,15 @@ import {
 import { FetchError } from '@utils/fetch'
 import * as Z from '@effect/io/Effect'
 import { FrontendEnv, FrontendLive } from './frontendEnv'
-import { flow, pipe, identity } from '@effect/data/Function'
+import { flow, identity } from '@effect/data/Function'
 import * as Ex from '@effect/io/Exit'
 import * as Cause from '@effect/io/Cause'
 
-const ExUnsafeGetOrThrow: <E, A>(self: Ex.Exit<E, A>) => A = Ex.match(
-  (cause) => {
-    throw Cause.squash(cause)
-  },
-  identity,
+const ExUnsafeGetOrThrow: <E, A>(self: Ex.Exit<E, A>) => A = flow(
+  Ex.unannotate,
+  Ex.match((cause) => {
+    throw cause
+  }, identity),
 )
 
 export type ErrorWithStaleData<E, A> = {
@@ -34,7 +35,7 @@ export type ErrorWithStaleData<E, A> = {
 }
 export const useQueryRemoteData = <
   QueryFnData,
-  E,
+  E extends Data.Case,
   A = QueryFnData,
   Key extends QueryKey = QueryKey,
 >(
@@ -42,13 +43,13 @@ export const useQueryRemoteData = <
   queryFn: (
     context: QueryFunctionContext<Key>,
   ) => Z.Effect<FrontendEnv, E | FetchError, QueryFnData>,
-  options?: UseQueryOptions<QueryFnData, E | FetchError, A, Key>,
-): RD.RemoteData<ErrorWithStaleData<E | FetchError, A>, A> => {
+  options?: UseQueryOptions<QueryFnData, Cause.Cause<E | FetchError>, A, Key>,
+): RD.RemoteData<ErrorWithStaleData<Cause.Cause<E | FetchError>, A>, A> => {
   const _queryFn = flow(
     queryFn,
     Z.provideSomeLayer(FrontendLive),
     Z.runPromiseExit,
-    (_) => _.then((exit) => pipe(exit, Ex.unannotate, ExUnsafeGetOrThrow)),
+    (_) => _.then(ExUnsafeGetOrThrow),
   )
 
   const query = useQuery(queryKey, _queryFn, options)
@@ -69,20 +70,26 @@ type UseMutationRemoteDataResult<TData, TError, TVariables, TContext> = {
 
 export const useMutationRemoteData = <
   A,
+  E extends Data.Case,
   MutationVariables = void,
   TContext = unknown,
 >(
   mutationKey: MutationKey,
   mutationFn: (
     variables: MutationVariables,
-  ) => Z.Effect<FrontendEnv, FetchError, A>,
+  ) => Z.Effect<FrontendEnv, E | FetchError, A>,
   mutationOptions?: UseMutationOptions<
     A,
     FetchError,
     MutationVariables,
     TContext
   >,
-): UseMutationRemoteDataResult<A, FetchError, MutationVariables, TContext> => {
+): UseMutationRemoteDataResult<
+  A,
+  E | FetchError,
+  MutationVariables,
+  TContext
+> => {
   const _mutationFn = flow(
     mutationFn,
     Z.provideSomeLayer(FrontendLive),

@@ -1,5 +1,5 @@
 import * as Z from '@effect/io/Effect'
-import * as S from '@effect/schema'
+import * as S from '@effect/schema/Schema'
 import * as RD from '@devexperts/remote-data-ts'
 import { FetchError, fetchAndValidate } from '@utils/fetch'
 import { FrontendEnv } from '@utils/frontendEnv'
@@ -14,6 +14,7 @@ import {
   pokemonName,
   showGrid,
 } from './style.css'
+import * as Match from '@effect/match'
 import { pipe } from '@effect/data/Function'
 
 const PokemonResponse = S.struct({
@@ -26,7 +27,7 @@ const PokemonResponse = S.struct({
   }),
 })
 
-type PokemonResponse = S.Infer<typeof PokemonResponse>
+type PokemonResponse = S.To<typeof PokemonResponse>
 type PokemonComponent = {
   readonly imageUrl: string
   readonly name: string
@@ -45,7 +46,8 @@ const fetchPokemon = (
   pokemonName: string,
 ): Z.Effect<FrontendEnv, FetchError, PokemonResponse> =>
   pipe(
-    Z.serviceWithEffect(FrontendEnv, ({ backendURL }) =>
+    FrontendEnv,
+    Z.flatMap(({ backendURL }) =>
       fetchAndValidate(PokemonResponse, `${backendURL}/pokemon/${pokemonName}`),
     ),
   )
@@ -71,7 +73,7 @@ const Showgrid: React.FC = () => (
 
 const Pokemon: NextPage = () => {
   const gengarQry = useQueryRemoteData(['pokemon-gengar'], () =>
-    fetchPokemon('gengar'),
+    fetchPokemon('gengr'),
   )
   const blisseyQry = useQueryRemoteData(['pokemon-blissey'], () =>
     fetchPokemon('blissey'),
@@ -88,7 +90,13 @@ const Pokemon: NextPage = () => {
             multiPokemons,
             RD.fold3(
               () => <p>Loading</p>,
-              (e) => <p>Error: {JSON.stringify(e.error)}</p>,
+              (e) =>
+                pipe(
+                  Match.value(e.error),
+                  Match.tag('Fail', (fetchErr) => fetchErr.error),
+                  Match.orElse((_) => _._tag),
+                  (_) => <p>Err: {JSON.stringify(_)}</p>,
+                ),
               ([first, second]) => (
                 <>
                   <PokemonComponent

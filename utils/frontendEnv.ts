@@ -8,7 +8,7 @@ import { pipe, flow } from '@effect/data/Function'
 export const FrontendEnv = Context.Tag<FrontendEnv>()
 export interface FrontendEnv {
   readonly backendURL: URL
-  readonly nextEdgeFunctionURL: URL
+  readonly nextEdgeFunctionURL: string
 }
 
 export const ConfigUrl = flow(
@@ -28,7 +28,7 @@ const MapProvider = configProvider.fromMap(FrontendEnvMap)
 
 export const FrontendEnvConfig: Config.Config<FrontendEnv> = Config.all({
   backendURL: ConfigUrl('NEXT_PUBLIC_BACKEND_URL'),
-  nextEdgeFunctionURL: ConfigUrl('NEXT_PUBLIC_EDGE_FUNCTION_URL'),
+  nextEdgeFunctionURL: Config.string('NEXT_PUBLIC_EDGE_FUNCTION_URL'),
 })
 
 const pullEnvFromMap = pipe(
