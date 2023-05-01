@@ -4,12 +4,11 @@ import * as configProvider from '@effect/io/Config/Provider'
 import * as Layer from '@effect/io/Layer'
 import * as Effect from '@effect/io/Effect'
 import { pipe, flow } from '@effect/data/Function'
-
-export const FrontendEnv = Context.Tag<FrontendEnv>()
 export interface FrontendEnv {
   readonly backendURL: URL
   readonly nextEdgeFunctionURL: string
 }
+export const FrontendEnv = Context.Tag<FrontendEnv>()
 
 export const ConfigUrl = flow(
   Config.string,

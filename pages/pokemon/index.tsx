@@ -1,9 +1,12 @@
 import * as Z from '@effect/io/Effect'
 import * as S from '@effect/schema/Schema'
 import * as RD from '@devexperts/remote-data-ts'
-import { FetchError, fetchAndValidate } from '@utils/fetch'
+import { FetchError, fetchAndValidate, fromFetch } from '@utils/fetch'
 import { FrontendEnv } from '@utils/frontendEnv'
-import { useQueryRemoteData } from '@utils/useRemoteQuery'
+import {
+  QueryExecutionContext,
+  useQueryRemoteData,
+} from '@utils/useRemoteQuery'
 import { NextPage } from 'next/types'
 import {
   gridContainer,
@@ -41,14 +44,20 @@ const PokemonComponent: React.FC<PokemonComponent> = ({ imageUrl, name }) => (
     </div>
   </div>
 )
-
 const fetchPokemon = (
   pokemonName: string,
-): Z.Effect<FrontendEnv, FetchError, PokemonResponse> =>
+): Z.Effect<FrontendEnv | QueryExecutionContext, FetchError, PokemonResponse> =>
   pipe(
-    FrontendEnv,
-    Z.flatMap(({ backendURL }) =>
-      fetchAndValidate(PokemonResponse, `${backendURL}/pokemon/${pokemonName}`),
+    Z.all({
+      frontendEnv: FrontendEnv,
+      executionContext: QueryExecutionContext,
+    }),
+    Z.flatMap(({ frontendEnv, executionContext }) =>
+      fetchAndValidate(
+        PokemonResponse,
+        `${frontendEnv.backendURL}/pokemon/${pokemonName}`,
+        { signal: executionContext.signal },
+      ),
     ),
   )
 
@@ -72,10 +81,12 @@ const Showgrid: React.FC = () => (
 )
 
 const Pokemon: NextPage = () => {
-  const gengarQry = useQueryRemoteData(['pokemon-gengar'], () =>
-    fetchPokemon('gengr'),
+  const gengarQry = useQueryRemoteData(
+    ['pokemon-gengar'],
+    fetchPokemon('gengar'),
   )
-  const blisseyQry = useQueryRemoteData(['pokemon-blissey'], () =>
+  const blisseyQry = useQueryRemoteData(
+    ['pokemon-blissey'],
     fetchPokemon('blissey'),
   )
 

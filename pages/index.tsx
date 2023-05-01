@@ -31,13 +31,13 @@ const Home: NextPage = () => {
 
   const findSomeStocks = useQueryRemoteData(
     [O.getOrNull(debouncedStockValue)],
-    () => findTicker(debouncedStockValue),
+    findTicker(debouncedStockValue),
     { enabled: O.isSome(debouncedStockValue) },
   )
 
   const findCandles = useQueryRemoteData(
     [`${O.getOrNull(selectedStock)}-candles`],
-    () => getCandles(selectedStock),
+    getCandles(selectedStock),
     { enabled: O.isSome(selectedStock) },
   )
 

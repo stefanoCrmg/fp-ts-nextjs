@@ -17,9 +17,13 @@ import {
 import { FetchError } from '@utils/fetch'
 import * as Z from '@effect/io/Effect'
 import { FrontendEnv, FrontendLive } from './frontendEnv'
-import { flow, identity } from '@effect/data/Function'
+import { flow, identity, pipe } from '@effect/data/Function'
 import * as Ex from '@effect/io/Exit'
 import * as Cause from '@effect/io/Cause'
+import * as Context from '@effect/data/Context'
+
+export type QueryExecutionContext = QueryFunctionContext<QueryKey>
+export const QueryExecutionContext = Context.Tag<QueryExecutionContext>()
 
 const ExUnsafeGetOrThrow: <E, A>(self: Ex.Exit<E, A>) => A = flow(
   Ex.unannotate,
@@ -40,17 +44,21 @@ export const useQueryRemoteData = <
   Key extends QueryKey = QueryKey,
 >(
   queryKey: Key,
-  queryFn: (
-    context: QueryFunctionContext<Key>,
-  ) => Z.Effect<FrontendEnv, E | FetchError, QueryFnData>,
+  queryFn: Z.Effect<
+    FrontendEnv | QueryExecutionContext,
+    E | FetchError,
+    QueryFnData
+  >,
   options?: UseQueryOptions<QueryFnData, Cause.Cause<E | FetchError>, A, Key>,
 ): RD.RemoteData<ErrorWithStaleData<Cause.Cause<E | FetchError>, A>, A> => {
-  const _queryFn = flow(
-    queryFn,
-    Z.provideSomeLayer(FrontendLive),
-    Z.runPromiseExit,
-    (_) => _.then(ExUnsafeGetOrThrow),
-  )
+  const _queryFn = (tanstackQueryContext: QueryFunctionContext<Key>) =>
+    pipe(
+      queryFn,
+      Z.provideSomeLayer(FrontendLive),
+      Z.provideContext(QueryExecutionContext.context(tanstackQueryContext)),
+      Z.runPromiseExit,
+      (_) => _.then(ExUnsafeGetOrThrow),
+    )
 
   const query = useQuery(queryKey, _queryFn, options)
 

@@ -69,13 +69,29 @@ export const fromFetch = (
   input: RequestInfo | URL,
   init?: RequestInit | undefined,
 ): Z.Effect<never, GenericFetchError, Response> =>
-  Z.tryCatchPromise(
-    () => fetch(input, init),
-    flow(
-      (error) => (error instanceof Error ? error.message : 'Unknown error.'),
-      (message) => GenericFetchError({ message }),
-    ),
-  )
+  Z.gen(function* ($) {
+    /**
+     * The fetch is actually going to be canceled by the abortSignal present in the `init` parameter of `fromFetch`
+     * `init.signal` is passed down to the fetch operation by tanstack query, the following event should cleanup (and interrupt) an Effect's fiber
+     * but it doesn't really work as expected: tanstack query seems to rollback a query to its previous state, ignoring the possible
+     * execution outcome of the fetch operation.
+     *
+     * What this means is that, even if interrupted correctly, the fiber error never "reaches" tanstack-query's error channel.
+     *
+     * TODO:
+     * 1. Instead of a GenericFetchError, return a Fiber Interrupt?
+     * 2. Drop using tanstack-query's abortSignal in favour of Effect's and return the instance of Z.interrupt somehow to the hook caller?
+     */
+    const eff = Z.tryCatchPromiseInterrupt(
+      () => fetch(input, init),
+      flow(
+        (error) => (error instanceof Error ? error.message : 'Unknown error.'),
+        (message) => GenericFetchError({ message }),
+      ),
+    )
+
+    return yield* $(eff)
+  })
 
 const contentTypeIsJson = (headers: Headers): boolean =>
   pipe(
@@ -129,7 +145,7 @@ export const getJsonAndValidate =
   (response: Response): Z.Effect<never, FetchError, A> =>
     pipe(
       matchResponse(response),
-      // Z.tapErrorCause(Z.logErrorCause),
+      Z.tapErrorCause(Z.logErrorCause),
       Z.flatMap((json) =>
         pipe(
           S.parseEffect(schema)(json, { onExcessProperty: 'ignore' }),
