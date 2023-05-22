@@ -2,7 +2,7 @@ import * as Clock from '@effect/io/Clock'
 import * as S from '@effect/schema/Schema'
 import * as O from '@effect/data/Option'
 import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
-import * as Z from '@effect/io/Effect'
+import * as Effect from '@effect/io/Effect'
 import { FrontendEnv } from '@utils/frontendEnv'
 import * as Duration from '@effect/data/Duration'
 import { pipe, flow } from '@effect/data/Function'
@@ -25,20 +25,20 @@ export interface CandlesResponse extends S.To<typeof CandlesResponse> {}
 
 const _getCandlesEffect = (
   symbol: string,
-): Z.Effect<FrontendEnv, FetchError, CandlesResponse> =>
+): Effect.Effect<FrontendEnv, FetchError, CandlesResponse> =>
   pipe(
-    Z.allPar({
+    Effect.allPar({
       backendURL: pipe(
         FrontendEnv,
-        Z.map((_) => _.backendURL),
+        Effect.map((_) => _.backendURL),
       ),
-      now: pipe(Clock.currentTimeMillis(), Z.map(Duration.millis)),
+      now: pipe(Clock.currentTimeMillis(), Effect.map(Duration.millis)),
       before: pipe(
         Clock.currentTimeMillis(),
-        Z.map(flow(Duration.millis, Duration.subtract(Duration.days(14)))),
+        Effect.map(flow(Duration.millis, Duration.subtract(Duration.days(14)))),
       ),
     }),
-    Z.flatMap(({ now, before, backendURL }) =>
+    Effect.flatMap(({ now, before, backendURL }) =>
       fetchAndValidate(
         CandlesResponse,
         `${backendURL}/candle?symbol=${symbol}&timeframe=day&from=${before.millis}&to=${now.millis}`,
@@ -48,7 +48,7 @@ const _getCandlesEffect = (
 
 export const getCandles: (
   stockValue: O.Option<string>,
-) => Z.Effect<FrontendEnv, FetchError, CandlesResponse> = flow(
-  Z.mapError(() => GenericFetchError({ message: 'Missing stock identifier' })),
-  Z.flatMap(_getCandlesEffect),
+) => Effect.Effect<FrontendEnv, FetchError, CandlesResponse> = flow(
+  Effect.mapError(() => GenericFetchError({ message: 'Missing stock identifier' })),
+  Effect.flatMap(_getCandlesEffect),
 )

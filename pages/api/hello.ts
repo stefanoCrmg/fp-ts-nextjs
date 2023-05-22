@@ -10,3 +10,4 @@ const succ = (res: NextApiResponse): Effect.Effect<never, never, void> =>
 export default function handler(_req: NextApiRequest, res: NextApiResponse) {
   pipe(succ(res), Effect.delay(someMillis), Effect.runPromise)
 }
+

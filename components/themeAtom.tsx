@@ -1,34 +1,34 @@
 import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
 import * as O from '@effect/data/Option'
-import * as Z from '@effect/io/Effect'
+import * as Effect from '@effect/io/Effect'
 import { constVoid, pipe } from '@effect/data/Function'
 
 type SupportedTheme = 'dark' | 'light'
 
 const setDataset =
   <A extends string>(name: string, value: A) =>
-  (htlmElement: HTMLElement): Z.Effect<never, never, void> =>
-    Z.sync(() => {
+  (htlmElement: HTMLElement): Effect.Effect<never, never, void> =>
+    Effect.sync(() => {
       htlmElement.dataset[name] = value
     })
 
 const DOMquerySelector =
   (q: string) =>
-  (parentNode: ParentNode): Z.Effect<never, never, O.Option<Element>> =>
-    Z.sync(() => O.fromNullable(parentNode.querySelector(q)))
+  (parentNode: ParentNode): Effect.Effect<never, never, O.Option<Element>> =>
+    Effect.sync(() => O.fromNullable(parentNode.querySelector(q)))
 
 const isHTMLElement = (e: Element): e is HTMLElement => e instanceof HTMLElement
 
 const updateDOMDataTheme = (
   theme: SupportedTheme,
-): Z.Effect<never, never, void> =>
+): Effect.Effect<never, never, void> =>
   pipe(
     document,
     DOMquerySelector('body'),
-    Z.map(O.filter(isHTMLElement)),
-    Z.flatMap(
-      O.match(() => Z.succeed(constVoid()), setDataset('theme', theme)),
+    Effect.map(O.filter(isHTMLElement)),
+    Effect.flatMap(
+      O.match(() => Effect.succeed(constVoid()), setDataset('theme', theme)),
     ),
   )
 
@@ -57,8 +57,8 @@ export const useTheme = () => {
   const wrapSetTheme = (theme: SupportedTheme) =>
     pipe(
       updateDOMDataTheme(theme),
-      Z.zipPar(Z.sync(() => setTheme(theme))),
-      Z.runSync,
+      Effect.zipPar(Effect.sync(() => setTheme(theme))),
+      Effect.runSync,
     )
 
   return [theme, wrapSetTheme] as const

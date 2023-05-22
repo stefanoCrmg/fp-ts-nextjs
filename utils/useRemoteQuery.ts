@@ -15,7 +15,7 @@ import {
   UseQueryOptions,
 } from '@tanstack/react-query'
 import { FetchError } from '@utils/fetch'
-import * as Z from '@effect/io/Effect'
+import * as Effect from '@effect/io/Effect'
 import { FrontendEnv, FrontendLive } from './frontendEnv'
 import { flow, identity, pipe } from '@effect/data/Function'
 import * as Ex from '@effect/io/Exit'
@@ -44,7 +44,7 @@ export const useQueryRemoteData = <
   Key extends QueryKey = QueryKey,
 >(
   queryKey: Key,
-  queryFn: Z.Effect<
+  queryFn: Effect.Effect<
     FrontendEnv | QueryExecutionContext,
     E | FetchError,
     QueryFnData
@@ -54,9 +54,9 @@ export const useQueryRemoteData = <
   const _queryFn = (tanstackQueryContext: QueryFunctionContext<Key>) =>
     pipe(
       queryFn,
-      Z.provideSomeLayer(FrontendLive),
-      Z.provideContext(QueryExecutionContext.context(tanstackQueryContext)),
-      Z.runPromiseExit,
+      Effect.provideSomeLayer(FrontendLive),
+      Effect.provideContext(QueryExecutionContext.context(tanstackQueryContext)),
+      Effect.runPromiseExit,
       (_) => _.then(ExUnsafeGetOrThrow),
     )
 
@@ -85,7 +85,7 @@ export const useMutationRemoteData = <
   mutationKey: MutationKey,
   mutationFn: (
     variables: MutationVariables,
-  ) => Z.Effect<FrontendEnv, E | FetchError, A>,
+  ) => Effect.Effect<FrontendEnv, E | FetchError, A>,
   mutationOptions?: UseMutationOptions<
     A,
     FetchError,
@@ -100,8 +100,8 @@ export const useMutationRemoteData = <
 > => {
   const _mutationFn = flow(
     mutationFn,
-    Z.provideSomeLayer(FrontendLive),
-    Z.runPromise,
+    Effect.provideSomeLayer(FrontendLive),
+    Effect.runPromise,
   )
   const mutation = useMutation(mutationKey, _mutationFn, mutationOptions)
 

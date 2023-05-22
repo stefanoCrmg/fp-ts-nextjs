@@ -1,4 +1,4 @@
-import * as Z from '@effect/io/Effect'
+import * as Effect from '@effect/io/Effect'
 import * as O from '@effect/data/Option'
 import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
 import * as S from '@effect/schema/Schema'
@@ -41,17 +41,17 @@ export interface TickerResponse extends S.To<typeof TickerResponse> {}
 
 const _findTickerEffect = (
   symbol: string,
-): Z.Effect<FrontendEnv, FetchError, TickerResponse> =>
+): Effect.Effect<FrontendEnv, FetchError, TickerResponse> =>
   pipe(
     FrontendEnv,
-    Z.flatMap(({ backendURL }) =>
+    Effect.flatMap(({ backendURL }) =>
       fetchAndValidate(TickerResponse, `${backendURL}/ticker?search=${symbol}`),
     ),
   )
 
 export const findTicker: (
   stockValue: O.Option<string>,
-) => Z.Effect<FrontendEnv, FetchError, TickerResponse> = flow(
-  Z.mapError(() => GenericFetchError({ message: 'Missing stock identifier' })),
-  Z.flatMap(_findTickerEffect),
+) => Effect.Effect<FrontendEnv, FetchError, TickerResponse> = flow(
+  Effect.mapError(() => GenericFetchError({ message: 'Missing stock identifier' })),
+  Effect.flatMap(_findTickerEffect),
 )

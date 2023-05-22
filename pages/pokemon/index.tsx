@@ -1,7 +1,7 @@
-import * as Z from '@effect/io/Effect'
+import * as Effect from '@effect/io/Effect'
 import * as S from '@effect/schema/Schema'
 import * as RD from '@devexperts/remote-data-ts'
-import { FetchError, fetchAndValidate, fromFetch } from '@utils/fetch'
+import { FetchError, fetchAndValidate } from '@utils/fetch'
 import { FrontendEnv } from '@utils/frontendEnv'
 import {
   QueryExecutionContext,
@@ -19,6 +19,7 @@ import {
 } from './style.css'
 import * as Match from '@effect/match'
 import { pipe } from '@effect/data/Function'
+import React from 'react'
 
 const PokemonResponse = S.struct({
   name: S.string,
@@ -46,13 +47,13 @@ const PokemonComponent: React.FC<PokemonComponent> = ({ imageUrl, name }) => (
 )
 const fetchPokemon = (
   pokemonName: string,
-): Z.Effect<FrontendEnv | QueryExecutionContext, FetchError, PokemonResponse> =>
+): Effect.Effect<FrontendEnv | QueryExecutionContext, FetchError, PokemonResponse> =>
   pipe(
-    Z.all({
+    Effect.all({
       frontendEnv: FrontendEnv,
       executionContext: QueryExecutionContext,
     }),
-    Z.flatMap(({ frontendEnv, executionContext }) =>
+    Effect.flatMap(({ frontendEnv, executionContext }) =>
       fetchAndValidate(
         PokemonResponse,
         `${frontendEnv.backendURL}/pokemon/${pokemonName}`,
@@ -80,6 +81,8 @@ const Showgrid: React.FC = () => (
   </div>
 )
 
+declare const generateColor: () => Promise<string>
+
 const Pokemon: NextPage = () => {
   const gengarQry = useQueryRemoteData(
     ['pokemon-gengar'],
@@ -89,7 +92,7 @@ const Pokemon: NextPage = () => {
     ['pokemon-blissey'],
     fetchPokemon('blissey'),
   )
-
+  
   const multiPokemons = RD.combine(gengarQry, blisseyQry)
 
   return (

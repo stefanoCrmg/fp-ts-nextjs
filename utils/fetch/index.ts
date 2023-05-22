@@ -4,7 +4,7 @@ import * as ContentTypeHelpers from 'content-type'
 import * as S from '@effect/schema/Schema'
 import { flow, pipe } from '@effect/data/Function'
 import * as O from '@effect/data/Option'
-import * as Z from '@effect/io/Effect'
+import * as Effect from '@effect/io/Effect'
 import * as Data from '@effect/data/Data'
 import type { Json } from '@effect/schema/Schema'
 import { ParseError } from '@effect/schema/ParseResult'
@@ -68,8 +68,8 @@ export type FetchError =
 export const fromFetch = (
   input: RequestInfo | URL,
   init?: RequestInit | undefined,
-): Z.Effect<never, GenericFetchError, Response> =>
-  Z.gen(function* ($) {
+): Effect.Effect<never, GenericFetchError, Response> =>
+  Effect.gen(function* ($) {
     /**
      * The fetch is actually going to be canceled by the abortSignal present in the `init` parameter of `fromFetch`
      * `init.signal` is passed down to the fetch operation by tanstack query, the following event should cleanup (and interrupt) an Effect's fiber
@@ -80,9 +80,9 @@ export const fromFetch = (
      *
      * TODO:
      * 1. Instead of a GenericFetchError, return a Fiber Interrupt?
-     * 2. Drop using tanstack-query's abortSignal in favour of Effect's and return the instance of Z.interrupt somehow to the hook caller?
+     * 2. Drop using tanstack-query's abortSignal in favour of Effect's and return the instance of Effect.interrupt somehow to the hook caller?
      */
-    const eff = Z.tryCatchPromiseInterrupt(
+    const eff = Effect.tryCatchPromiseInterrupt(
       () => fetch(input, init),
       flow(
         (error) => (error instanceof Error ? error.message : 'Unknown error.'),
@@ -107,7 +107,7 @@ const statusCodeIs50x = (status: number): boolean =>
 
 export const matchResponse = (
   response: Response,
-): Z.Effect<
+): Effect.Effect<
   never,
   HttpClientError | HttpServerError | JsonParseError | NotJson,
   Json
@@ -116,19 +116,19 @@ export const matchResponse = (
     .when(
       (response) => statusCodeIs40x(response.status),
       (r) => {
-        return Z.fail(
+        return Effect.fail(
           HttpClientError({ statusCode: r.status, originalResponse: r }),
         )
       },
     )
     .when(
       (response) => statusCodeIs50x(response.status),
-      (r) => Z.fail(HttpServerError({ statusCode: r.status })),
+      (r) => Effect.fail(HttpServerError({ statusCode: r.status })),
     )
     .when(
       (response) => contentTypeIsJson(response.headers),
       (r) =>
-        Z.tryCatchPromise(
+        Effect.tryCatchPromise(
           () => r.json() as Promise<Json>,
           (error) =>
             JsonParseError({
@@ -137,19 +137,19 @@ export const matchResponse = (
             }),
         ),
     )
-    .otherwise(() => Z.fail(NotJson()))
+    .otherwise(() => Effect.fail(NotJson()))
 }
 
 export const getJsonAndValidate =
   <I, A>(schema: S.Schema<I, A>) =>
-  (response: Response): Z.Effect<never, FetchError, A> =>
+  (response: Response): Effect.Effect<never, FetchError, A> =>
     pipe(
       matchResponse(response),
-      Z.tapErrorCause(Z.logErrorCause),
-      Z.flatMap((json) =>
+      Effect.tapErrorCause(Effect.logErrorCause),
+      Effect.flatMap((json) =>
         pipe(
           S.parseEffect(schema)(json, { onExcessProperty: 'ignore' }),
-          Z.mapError((errors) => DecodingFailure({ errors: [errors] })),
+          Effect.mapError((errors) => DecodingFailure({ errors: [errors] })),
         ),
       ),
     )
@@ -158,5 +158,5 @@ export const fetchAndValidate = <I, A>(
   schema: S.Schema<I, A>,
   input: RequestInfo | URL,
   init?: RequestInit | undefined,
-): Z.Effect<never, FetchError, A> =>
-  pipe(fromFetch(input, init), Z.flatMap(getJsonAndValidate(schema)))
+): Effect.Effect<never, FetchError, A> =>
+  pipe(fromFetch(input, init), Effect.flatMap(getJsonAndValidate(schema)))

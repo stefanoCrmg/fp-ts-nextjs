@@ -9,7 +9,7 @@ import {
 } from '@utils/useRemoteQuery'
 import * as O from '@effect/data/Option'
 import * as RD from '@devexperts/remote-data-ts'
-import * as Z from '@effect/io/Effect'
+import * as Effect from '@effect/io/Effect'
 import * as S from '@effect/schema/Schema'
 import { useStableO } from '@fp/ReactStableHooks'
 import * as V from 'victory'
@@ -43,15 +43,15 @@ const Home: NextPage = () => {
 
   const fakePostTask: (
     body: FakePostBody,
-  ) => Z.Effect<FrontendEnv, FetchError, FakePostBody> = (body: FakePostBody) =>
+  ) => Effect.Effect<FrontendEnv, FetchError, FakePostBody> = (body: FakePostBody) =>
     pipe(
       FrontendEnv,
-      Z.flatMap(({ nextEdgeFunctionURL }) =>
+      Effect.flatMap(({ nextEdgeFunctionURL }) =>
         pipe(
           body,
           S.encodeEffect(fakePostBody),
-          Z.mapError((errors) => EncodingFailure({ errors: [errors] })),
-          Z.flatMap((body) =>
+          Effect.mapError((errors) => EncodingFailure({ errors: [errors] })),
+          Effect.flatMap((body) =>
             fetchAndValidate(fakePostBody, `${nextEdgeFunctionURL}/hello`, {
               method: 'POST',
               body: JSON.stringify(body),
