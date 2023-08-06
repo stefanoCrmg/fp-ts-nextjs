@@ -1,9 +1,9 @@
-import * as Effect from '@effect/io/Effect'
-import * as O from '@effect/data/Option'
+import * as Effect from 'effect/Effect'
+import * as O from 'effect/Option'
 import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
 import * as S from '@effect/schema/Schema'
 import { FrontendEnv } from '@utils/frontendEnv'
-import { flow, pipe } from '@effect/data/Function'
+import { pipe, compose } from 'effect/Function'
 
 const Market = S.union(
   S.literal('stocks'),
@@ -51,7 +51,9 @@ const _findTickerEffect = (
 
 export const findTicker: (
   stockValue: O.Option<string>,
-) => Effect.Effect<FrontendEnv, FetchError, TickerResponse> = flow(
-  Effect.mapError(() => GenericFetchError({ message: 'Missing stock identifier' })),
+) => Effect.Effect<FrontendEnv, FetchError, TickerResponse> = compose(
+  Effect.mapError(() =>
+    GenericFetchError({ message: 'Missing stock identifier' }),
+  ),
   Effect.flatMap(_findTickerEffect),
 )

@@ -1,11 +1,11 @@
-import * as Clock from '@effect/io/Clock'
+import * as Clock from 'effect/Clock'
 import * as S from '@effect/schema/Schema'
-import * as O from '@effect/data/Option'
+import * as O from 'effect/Option'
 import { fetchAndValidate, FetchError, GenericFetchError } from '@utils/fetch'
-import * as Effect from '@effect/io/Effect'
+import * as Effect from 'effect/Effect'
 import { FrontendEnv } from '@utils/frontendEnv'
-import * as Duration from '@effect/data/Duration'
-import { pipe, flow } from '@effect/data/Function'
+import * as Duration from 'effect/Duration'
+import { pipe, compose } from 'effect/Function'
 
 export const Candles = S.struct({
   closePrice: S.number,
@@ -27,28 +27,37 @@ const _getCandlesEffect = (
   symbol: string,
 ): Effect.Effect<FrontendEnv, FetchError, CandlesResponse> =>
   pipe(
-    Effect.allPar({
-      backendURL: pipe(
-        FrontendEnv,
-        Effect.map((_) => _.backendURL),
-      ),
-      now: pipe(Clock.currentTimeMillis(), Effect.map(Duration.millis)),
-      before: pipe(
-        Clock.currentTimeMillis(),
-        Effect.map(flow(Duration.millis, Duration.subtract(Duration.days(14)))),
-      ),
-    }),
+    Effect.all(
+      {
+        backendURL: pipe(
+          FrontendEnv,
+          Effect.map((_) => _.backendURL),
+        ),
+        now: pipe(Clock.currentTimeMillis, Effect.map(Duration.millis)),
+        before: pipe(
+          Clock.currentTimeMillis,
+          Effect.map(
+            compose(Duration.millis, Duration.sum(Duration.days(-14))),
+          ),
+        ),
+      },
+      { concurrency: 'unbounded' },
+    ),
     Effect.flatMap(({ now, before, backendURL }) =>
       fetchAndValidate(
         CandlesResponse,
-        `${backendURL}/candle?symbol=${symbol}&timeframe=day&from=${before.millis}&to=${now.millis}`,
+        `${backendURL}/candle?symbol=${symbol}&timeframe=day&from=${Duration.toMillis(
+          before,
+        )}&to=${Duration.toMillis(now)}`,
       ),
     ),
   )
 
 export const getCandles: (
   stockValue: O.Option<string>,
-) => Effect.Effect<FrontendEnv, FetchError, CandlesResponse> = flow(
-  Effect.mapError(() => GenericFetchError({ message: 'Missing stock identifier' })),
+) => Effect.Effect<FrontendEnv, FetchError, CandlesResponse> = compose(
+  Effect.mapError(() =>
+    GenericFetchError({ message: 'Missing stock identifier' }),
+  ),
   Effect.flatMap(_getCandlesEffect),
 )

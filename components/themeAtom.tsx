@@ -1,8 +1,8 @@
 import { useAtom } from 'jotai'
 import { atomWithStorage } from 'jotai/utils'
-import * as O from '@effect/data/Option'
-import * as Effect from '@effect/io/Effect'
-import { constVoid, pipe } from '@effect/data/Function'
+import * as O from 'effect/Option'
+import * as Effect from 'effect/Effect'
+import { constVoid, pipe } from 'effect/Function'
 
 type SupportedTheme = 'dark' | 'light'
 
@@ -28,7 +28,10 @@ const updateDOMDataTheme = (
     DOMquerySelector('body'),
     Effect.map(O.filter(isHTMLElement)),
     Effect.flatMap(
-      O.match(() => Effect.succeed(constVoid()), setDataset('theme', theme)),
+      O.match({
+        onNone: () => Effect.succeed(constVoid()),
+        onSome: setDataset('theme', theme),
+      }),
     ),
   )
 
@@ -57,7 +60,7 @@ export const useTheme = () => {
   const wrapSetTheme = (theme: SupportedTheme) =>
     pipe(
       updateDOMDataTheme(theme),
-      Effect.zipPar(Effect.sync(() => setTheme(theme))),
+      Effect.zip(Effect.sync(() => setTheme(theme))),
       Effect.runSync,
     )
 

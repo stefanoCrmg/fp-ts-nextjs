@@ -1,7 +1,7 @@
-import { Brand } from '@effect/data/Brand'
-import { pipe } from '@effect/data/Function'
+import { Brand } from 'effect/Brand'
+import { pipe } from 'effect/Function'
 import * as S from '@effect/schema/Schema'
-import * as E from '@effect/data/Either'
+import * as E from 'effect/Either'
 import { ParseOptions } from '@effect/schema/AST'
 import { ParseError } from '@effect/schema/ParseResult'
 

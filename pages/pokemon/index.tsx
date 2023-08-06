@@ -1,25 +1,22 @@
-import * as Effect from '@effect/io/Effect'
-import * as S from '@effect/schema/Schema'
 import * as RD from '@devexperts/remote-data-ts'
+import * as Match from '@effect/match'
+import * as S from '@effect/schema/Schema'
 import { FetchError, fetchAndValidate } from '@utils/fetch'
 import { FrontendEnv } from '@utils/frontendEnv'
 import {
   QueryExecutionContext,
   useQueryRemoteData,
 } from '@utils/useRemoteQuery'
+import * as Effect from 'effect/Effect'
+import { pipe } from 'effect/Function'
 import { NextPage } from 'next/types'
+import React from 'react'
 import {
   gridContainer,
   gridContainerDelimiter,
   gridElement,
-  overlayGridContainer,
-  overlayGridItem,
   pokemonName,
-  showGrid,
 } from './style.css'
-import * as Match from '@effect/match'
-import { pipe } from '@effect/data/Function'
-import React from 'react'
 
 const PokemonResponse = S.struct({
   name: S.string,
@@ -47,7 +44,11 @@ const PokemonComponent: React.FC<PokemonComponent> = ({ imageUrl, name }) => (
 )
 const fetchPokemon = (
   pokemonName: string,
-): Effect.Effect<FrontendEnv | QueryExecutionContext, FetchError, PokemonResponse> =>
+): Effect.Effect<
+  FrontendEnv | QueryExecutionContext,
+  FetchError,
+  PokemonResponse
+> =>
   pipe(
     Effect.all({
       frontendEnv: FrontendEnv,
@@ -62,26 +63,24 @@ const fetchPokemon = (
     ),
   )
 
-const Showgrid: React.FC = () => (
-  <div className={overlayGridContainer}>
-    <div className={showGrid}>
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-      <div className={overlayGridItem} />
-    </div>
-  </div>
-)
-
-declare const generateColor: () => Promise<string>
+// const Showgrid: React.FC = () => (
+//   <div className={overlayGridContainer}>
+//     <div className={showGrid}>
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//       <div className={overlayGridItem} />
+//     </div>
+//   </div>
+// )
 
 const Pokemon: NextPage = () => {
   const gengarQry = useQueryRemoteData(
@@ -92,7 +91,7 @@ const Pokemon: NextPage = () => {
     ['pokemon-blissey'],
     fetchPokemon('blissey'),
   )
-  
+
   const multiPokemons = RD.combine(gengarQry, blisseyQry)
 
   return (

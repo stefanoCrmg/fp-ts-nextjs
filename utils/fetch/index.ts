@@ -2,13 +2,12 @@
 import { match } from 'ts-pattern'
 import * as ContentTypeHelpers from 'content-type'
 import * as S from '@effect/schema/Schema'
-import { flow, pipe } from '@effect/data/Function'
-import * as O from '@effect/data/Option'
-import * as Effect from '@effect/io/Effect'
-import * as Data from '@effect/data/Data'
-import type { Json } from '@effect/schema/Schema'
+import { compose, pipe } from 'effect/Function'
+import * as O from 'effect/Option'
+import * as Effect from 'effect/Effect'
+import * as Data from 'effect/Data'
 import { ParseError } from '@effect/schema/ParseResult'
-import type { NonEmptyReadonlyArray } from '@effect/data/ReadonlyArray'
+import type { NonEmptyReadonlyArray } from 'effect/ReadonlyArray'
 
 const CONTENT_TYPE_RESPONSE_HEADER = 'content-type'
 const CONTENT_TYPE_JSON = 'application/json'
@@ -82,13 +81,13 @@ export const fromFetch = (
      * 1. Instead of a GenericFetchError, return a Fiber Interrupt?
      * 2. Drop using tanstack-query's abortSignal in favour of Effect's and return the instance of Effect.interrupt somehow to the hook caller?
      */
-    const eff = Effect.tryCatchPromiseInterrupt(
-      () => fetch(input, init),
-      flow(
+    const eff = Effect.tryPromiseInterrupt({
+      try: () => fetch(input, init),
+      catch: compose(
         (error) => (error instanceof Error ? error.message : 'Unknown error.'),
         (message) => GenericFetchError({ message }),
       ),
-    )
+    })
 
     return yield* $(eff)
   })
@@ -97,7 +96,7 @@ const contentTypeIsJson = (headers: Headers): boolean =>
   pipe(
     headers.get(CONTENT_TYPE_RESPONSE_HEADER),
     O.fromNullable,
-    O.map(flow(ContentTypeHelpers.parse, (result) => result.type)),
+    O.map(compose(ContentTypeHelpers.parse, (result) => result.type)),
     O.exists((type) => type === CONTENT_TYPE_JSON),
   )
 const statusCodeIs40x = (status: number): boolean =>
@@ -110,7 +109,7 @@ export const matchResponse = (
 ): Effect.Effect<
   never,
   HttpClientError | HttpServerError | JsonParseError | NotJson,
-  Json
+  JSON
 > => {
   return match(response)
     .when(
@@ -128,14 +127,14 @@ export const matchResponse = (
     .when(
       (response) => contentTypeIsJson(response.headers),
       (r) =>
-        Effect.tryCatchPromise(
-          () => r.json() as Promise<Json>,
-          (error) =>
+        Effect.tryPromise({
+          try: () => r.json() as Promise<JSON>,
+          catch: (error) =>
             JsonParseError({
               message:
                 error instanceof Error ? error.message : 'Unknown error.',
             }),
-        ),
+        }),
     )
     .otherwise(() => Effect.fail(NotJson()))
 }
@@ -145,10 +144,10 @@ export const getJsonAndValidate =
   (response: Response): Effect.Effect<never, FetchError, A> =>
     pipe(
       matchResponse(response),
-      Effect.tapErrorCause(Effect.logErrorCause),
+      Effect.tapErrorCause(Effect.logError),
       Effect.flatMap((json) =>
         pipe(
-          S.parseEffect(schema)(json, { onExcessProperty: 'ignore' }),
+          S.parse(schema)(json, { onExcessProperty: 'ignore' }),
           Effect.mapError((errors) => DecodingFailure({ errors: [errors] })),
         ),
       ),

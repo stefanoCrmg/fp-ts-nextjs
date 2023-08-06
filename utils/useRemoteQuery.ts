@@ -1,6 +1,6 @@
 import * as RD from '@devexperts/remote-data-ts'
-import * as O from '@effect/data/Option'
-import * as Data from '@effect/data/Data'
+import * as O from 'effect/Option'
+import * as Data from 'effect/data'
 import { match } from 'ts-pattern'
 import {
   MutationKey,
@@ -15,22 +15,26 @@ import {
   UseQueryOptions,
 } from '@tanstack/react-query'
 import { FetchError } from '@utils/fetch'
-import * as Effect from '@effect/io/Effect'
+import * as Effect from 'effect/Effect'
 import { FrontendEnv, FrontendLive } from './frontendEnv'
-import { flow, identity, pipe } from '@effect/data/Function'
-import * as Ex from '@effect/io/Exit'
-import * as Cause from '@effect/io/Cause'
-import * as Context from '@effect/data/Context'
+import { identity, pipe } from 'effect/Function'
+import * as Ex from 'effect/Exit'
+import * as Cause from 'effect/Cause'
+import * as Context from 'effect/Context'
 
 export type QueryExecutionContext = QueryFunctionContext<QueryKey>
 export const QueryExecutionContext = Context.Tag<QueryExecutionContext>()
 
-const ExUnsafeGetOrThrow: <E, A>(self: Ex.Exit<E, A>) => A = flow(
-  Ex.unannotate,
-  Ex.match((cause) => {
-    throw cause
-  }, identity),
-)
+const ExUnsafeGetOrThrow = <E, A>(self: Ex.Exit<E, A>): A =>
+  self.pipe(
+    Ex.unannotate,
+    Ex.match({
+      onFailure: (cause) => {
+        throw cause
+      },
+      onSuccess: identity,
+    }),
+  )
 
 export type ErrorWithStaleData<E, A> = {
   readonly error: E
@@ -55,7 +59,9 @@ export const useQueryRemoteData = <
     pipe(
       queryFn,
       Effect.provideSomeLayer(FrontendLive),
-      Effect.provideContext(QueryExecutionContext.context(tanstackQueryContext)),
+      Effect.provideContext(
+        QueryExecutionContext.context(tanstackQueryContext),
+      ),
       Effect.runPromiseExit,
       (_) => _.then(ExUnsafeGetOrThrow),
     )
@@ -98,11 +104,12 @@ export const useMutationRemoteData = <
   MutationVariables,
   TContext
 > => {
-  const _mutationFn = flow(
-    mutationFn,
-    Effect.provideSomeLayer(FrontendLive),
-    Effect.runPromise,
-  )
+  const _mutationFn = (_: MutationVariables) =>
+    pipe(
+      mutationFn(_),
+      Effect.provideSomeLayer(FrontendLive),
+      Effect.runPromise,
+    )
   const mutation = useMutation(mutationKey, _mutationFn, mutationOptions)
 
   const lifeCycle: RD.RemoteData<FetchError, A> = match(mutation)

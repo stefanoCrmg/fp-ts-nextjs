@@ -1,7 +1,7 @@
-import * as E from '@effect/data/Either'
-import * as Eq from '@effect/data/Equal'
-import * as O from '@effect/data/Option'
-import { Equivalence } from '@effect/data/typeclass/Equivalence'
+import * as E from 'effect/Either'
+import * as Eq from 'effect/Equal'
+import * as O from 'effect/Option'
+import { Equivalence } from 'effect/Equivalence'
 import { Dispatch, SetStateAction, useReducer } from 'react'
 
 const isSetStateFn = <A>(s: SetStateAction<A>): s is (a: A) => A =>

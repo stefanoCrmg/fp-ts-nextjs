@@ -1,17 +1,17 @@
-import * as Context from '@effect/data/Context'
-import * as Config from '@effect/io/Config'
-import * as configProvider from '@effect/io/Config/Provider'
-import * as Layer from '@effect/io/Layer'
-import * as Effect from '@effect/io/Effect'
-import { pipe, flow } from '@effect/data/Function'
+import * as Context from 'effect/Context'
+import * as Config from 'effect/Config'
+import * as configProvider from 'effect/ConfigProvider'
+import * as Layer from 'effect/Layer'
+import * as Effect from 'effect/Effect'
+import { pipe } from 'effect/Function'
 export interface FrontendEnv {
   readonly backendURL: URL
   readonly nextEdgeFunctionURL: string
 }
 export const FrontendEnv = Context.Tag<FrontendEnv>()
 
-export const ConfigUrl = flow(
-  Config.string,
+export const ConfigUrl = (_: string | undefined) => pipe(
+  Config.string(_),
   Config.mapAttempt((_) => new URL(_)),
 )
 

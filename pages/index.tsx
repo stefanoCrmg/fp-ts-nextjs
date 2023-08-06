@@ -1,5 +1,5 @@
 import type { NextPage } from 'next'
-import { flow, pipe } from '@effect/data/Function'
+import { compose, pipe } from 'effect/Function'
 import { useDebouncedValue } from '@mantine/hooks'
 import { findTicker } from '../repository/findSymbol'
 import { getCandles } from '../repository/getCandles'
@@ -7,9 +7,9 @@ import {
   useMutationRemoteData,
   useQueryRemoteData,
 } from '@utils/useRemoteQuery'
-import * as O from '@effect/data/Option'
+import * as O from 'effect/Option'
 import * as RD from '@devexperts/remote-data-ts'
-import * as Effect from '@effect/io/Effect'
+import * as Effect from 'effect/Effect'
 import * as S from '@effect/schema/Schema'
 import { useStableO } from '@fp/ReactStableHooks'
 import * as V from 'victory'
@@ -43,13 +43,15 @@ const Home: NextPage = () => {
 
   const fakePostTask: (
     body: FakePostBody,
-  ) => Effect.Effect<FrontendEnv, FetchError, FakePostBody> = (body: FakePostBody) =>
+  ) => Effect.Effect<FrontendEnv, FetchError, FakePostBody> = (
+    body: FakePostBody,
+  ) =>
     pipe(
       FrontendEnv,
       Effect.flatMap(({ nextEdgeFunctionURL }) =>
         pipe(
           body,
-          S.encodeEffect(fakePostBody),
+          S.encode(fakePostBody),
           Effect.mapError((errors) => EncodingFailure({ errors: [errors] })),
           Effect.flatMap((body) =>
             fetchAndValidate(fakePostBody, `${nextEdgeFunctionURL}/hello`, {
@@ -82,11 +84,11 @@ const Home: NextPage = () => {
       )}
       <Combobox
         value={O.getOrNull(selectedStock)}
-        onChange={flow(O.fromNullable, setSelectedStock)}
+        onChange={compose(O.fromNullable, setSelectedStock)}
       >
         <Combobox.Input
           onChange={(event) =>
-            pipe(event.target.value, isNonEmptyString, O.fromEither, setStock)
+            pipe(event.target.value, isNonEmptyString, O.getRight, setStock)
           }
         />
         <Combobox.Options>
